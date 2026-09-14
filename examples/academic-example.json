@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "revision": 0,
+  "semesters": [{ "id": "example-semester", "name": "示例学期 2026 S2", "start": "2026-07-20", "end": "2026-11-30", "timezone": "Australia/Sydney", "archived": false, "weekStart": "2026-07-20", "holidays": "示例：请按实际教学日历填写" }],
+  "courses": [{ "id": "example-course", "semesterId": "example-semester", "name": "示例课程：设计研究", "code": "DEMO1001", "color": "#0078d4", "url": "", "notes": "此课程为虚构示例，不代表任何学校课程。", "archived": false }],
+  "assessments": [
+    { "id": "example-assignment", "courseId": "example-course", "title": "Research Assignment", "category": "Assignment", "due": "2026-09-25", "opens": "2026-09-01", "starts": "", "ends": "", "weight": 40, "score": null, "maxScore": 100, "result": "", "status": "todo", "priority": "normal", "notes": "只有日期，没有公布具体截止时间。", "reminders": true, "location": "", "url": "" },
+    { "id": "example-exam", "courseId": "example-course", "title": "Final Exam", "category": "Exam", "due": "", "opens": "", "starts": "", "ends": "", "weight": 60, "score": null, "maxScore": 100, "result": "", "status": "todo", "priority": "normal", "notes": "考试日期待公布。", "reminders": true, "location": "", "url": "" }
+  ],
+  "tasks": [],
+  "hurdles": [{ "id": "example-hurdle", "courseId": "example-course", "text": "示例要求：Final Exam 至少取得 40%。请手动确认。", "scope": "assessment", "assessmentIds": ["example-exam"], "status": "pending" }],
+  "sources": [],
+  "events": [],
+  "settings": { "theme": "windows", "appearance": "system", "timezone": "Australia/Sydney", "startAtLogin": false, "notifications": true, "digestEnabled": false, "digestTime": "20:00", "digestSince": "", "model": "deepseek-chat" }
+}

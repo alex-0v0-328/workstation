@@ -1,0 +1,15 @@
+node_modules/
+out/
+release/
+coverage/
+test-results/
+playwright-report/
+.env*
+!.env.example
+*.db
+*.db-*
+*.sqlite*
+credentials*.json
+client_secret*.json
+*.log
+.local/
