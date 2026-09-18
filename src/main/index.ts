@@ -152,6 +152,7 @@ async function tick() {
   if (ticking) return
   ticking = true
   try {
+    try { providers.pruneCaches() } catch (e) { providers.lastError = e instanceof Error ? e.message : '缓存清理失败' }
     const state = store.load(), now = DateTime.now().setZone(state.settings.timezone)
     if (state.settings.notifications) {
       const sent = store.get<Record<string, boolean>>('reminder:sent', {})

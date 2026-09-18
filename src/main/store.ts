@@ -29,5 +29,16 @@ export class Store {
   }
   set(key: string, value: unknown): void { this.db.prepare('INSERT INTO cache (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(key, JSON.stringify(value)) }
   clearPrefix(prefix: string): void { this.db.prepare('DELETE FROM cache WHERE substr(key,1,?)=?').run(prefix.length, prefix) }
+  prunePrefix(prefix: string, maxAgeMs: number, now = Date.now()): number {
+    const rows = this.db.prepare('SELECT key, json FROM cache WHERE substr(key,1,?)=?').all(prefix.length, prefix) as { key: string; json: string }[]
+    const cutoff = now - maxAgeMs, stale: string[] = []
+    for (const row of rows) {
+      let at: unknown
+      try { at = (JSON.parse(row.json) as { at?: unknown } | null)?.at } catch { at = undefined }
+      if (typeof at !== 'number' || at < cutoff) stale.push(row.key)
+    }
+    if (stale.length) { const remove = this.db.prepare('DELETE FROM cache WHERE key=?'); this.db.transaction(() => { for (const key of stale) remove.run(key) })() }
+    return stale.length
+  }
   close(): void { this.db.close() }
 }

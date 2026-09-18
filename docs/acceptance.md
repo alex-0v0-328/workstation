@@ -23,6 +23,15 @@ The expected invalid-backup rejection appears in Electron stderr during the smok
 
 Hidden packaged-EXE screenshots time out on this host after fonts load. Full interaction/screenshot coverage uses the Electron development launcher; packaged runtime coverage uses `scripts/packaged-check.cjs`. Installed interactive rendering and Windows integration remain manual checks.
 
+## Verified on 2026-09-18 (0.2.0)
+
+- `npm.cmd test`: 30 tests passed across six suites. New coverage: locale-independent Monday week anchoring, teaching-week numbering across the Melbourne DST switch, calendar event visibility with archived courses/semesters, an anonymized Melbourne subscription fixture (wall times and occurrence IDs across the DST boundary), and cache pruning with digest-history capping.
+- `npm.cmd run build`: TypeScript and all three production bundles passed.
+- `npm.cmd run smoke`: passed with isolated fictional data, including restart persistence (`SMOKE_OK`, `PERSISTENCE_OK`).
+- `npm.cmd run package`: installer generated for Windows x64. `node scripts/packaged-check.cjs` passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`).
+- Installer: `Workstation Setup 0.2.0.exe`, 121,556,877 bytes. SHA-256: `A2C9686D07CA58F50FC54374783EA8FFBE1C440D6FA63FF808A1A93566374517`.
+- Real-feed compatibility spot check (kept out of version control per privacy rules): the user's actual university subscription URL served 56 KB over direct HTTPS and parsed into 144 single events; embedded Australia/Melbourne VTIMEZONE produced correct local wall times across the 2026-10-04 DST boundary (+10:00 before, +11:00 after) with zero duplicate IDs and stable ID sequences across parses. This validates the feed shape only; the user's installed-app subscription result remains a manual check.
+
 ## Requires user-owned configuration or manual installed-app verification
 
 - Google OAuth browser flow, consent policy, refresh after expiry, revoke/reconnect.

@@ -64,18 +64,23 @@ export function mergeCalendarMappings(previous: CalendarEvent[], incoming: Calen
     return { ...event, courseId: byId.get(event.id) ?? fallback }
   })
 }
+// Luxon's startOf('week') follows the runtime locale; teaching weeks anchor to Monday everywhere.
+export function startOfWeek(day: DateTime): DateTime {
+  return day.minus({ days: day.weekday - 1 }).startOf('day')
+}
 export function expandManual(input: ManualInput): CalendarEvent[] {
   let day = DateTime.fromISO(input.from, { zone: input.timezone })
   const end = DateTime.fromISO(input.to, { zone: input.timezone })
   if (!day.isValid || !end.isValid || end < day || end.diff(day, 'days').days > 1100 || !input.title.trim()) throw new Error('请填写标题和有效课表日期范围（最多三年）')
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.endTime) || input.endTime <= input.time) throw new Error('课程结束时间必须晚于开始时间')
-  const anchor = DateTime.fromISO(input.weekStart || input.from, { zone: input.timezone }).startOf('week')
+  const anchor = startOfWeek(DateTime.fromISO(input.weekStart || input.from, { zone: input.timezone }))
   const specified = input.specific.split(/[,，\s]+/).map(Number)
   const exceptions = new Set(input.exceptions.split(/[,，\s]+/))
   const result: CalendarEvent[] = []
   const series = crypto.randomUUID()
   for (; day <= end; day = day.plus({ days: 1 })) {
-    const week = Math.floor(day.startOf('week').diff(anchor, 'weeks').weeks) + 1
+    // Count calendar days rather than elapsed time: a DST switch makes a week 167/169 hours long, and rounding absorbs that skew.
+    const week = Math.round(startOfWeek(day).diff(anchor, 'days').days / 7) + 1
     if (day.weekday !== input.weekday || exceptions.has(day.toISODate()!)) continue
     if (input.weeks === 'odd' && week % 2 !== 1 || input.weeks === 'even' && week % 2 !== 0 || input.weeks === 'specific' && !specified.includes(week)) continue
     const start = DateTime.fromISO(`${day.toISODate()}T${input.time}`, { zone: input.timezone })

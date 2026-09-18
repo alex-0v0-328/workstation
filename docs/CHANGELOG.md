@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 — 2026-09-18
+
+Maintenance release hardening timetable week rules, cache hygiene, and release bookkeeping.
+
+- Show the application version from `package.json` in settings instead of a hardcoded string.
+- Anchor teaching-week starts to Monday independent of system locale, and count calendar days so DST switches cannot skew week numbering.
+- Unify timetable week navigation on the selected semester's time zone for both the initial week and the "this week" button.
+- Hide manual timetable events whose course (or its semester) is archived, matching the TODO cascade semantics.
+- Prune mail list/body and AI result cache entries older than 30 days on Gmail connect and on the daily tick; cap digest history at 90 entries.
+- Verify a real university subscription feed (144 single events with an embedded Melbourne VTIMEZONE across the DST boundary) parses with correct wall times and stable occurrence IDs; add an anonymized regression fixture.
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.1.0 — 2026-09-14
 
 Initial Windows desktop version with local study, task, and mail workflows.

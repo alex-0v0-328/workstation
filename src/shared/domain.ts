@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { DateTime } from 'luxon'
-import type { Workspace, TodoItem } from './types'
+import type { Workspace, TodoItem, Semester, Course, CalendarEvent, CalendarSource } from './types'
 
 const text = z.string().max(100000)
 const id = z.string().min(1).max(200)
@@ -64,6 +64,14 @@ export function aggregateTodos(s: Workspace, includeArchived = false): TodoItem[
     const c = courses.find(c => c.id === a.courseId)!
     return { ...a, archived: !!(a.archived || c.archived || s.semesters.find(x => x.id === c.semesterId)!.archived), due: a.due || a.starts, source: 'assessment' as const, courseName: c.name, color: c.color, timezone: s.semesters.find(x => x.id === c.semesterId)!.timezone }
   })]
+}
+// Calendar views list one semester's courses and sources; manual events inherit the course/semester archive cascade like assessments.
+export function visibleCalendarEvents(events: CalendarEvent[], courses: Course[], sources: CalendarSource[], semesters: Semester[]): CalendarEvent[] {
+  return events.filter(e => {
+    if (e.sourceId) return sources.some(s => s.id === e.sourceId)
+    const course = courses.find(c => c.id === e.courseId)
+    return !!course && !course.archived && semesters.some(s => s.id === course.semesterId && !s.archived)
+  })
 }
 export function calculateGrade(items: { weight: number | null; score: number | null; maxScore: number | null; result?: string }[]) {
   let earned = 0, gradedWeight = 0, assignedWeight = 0
