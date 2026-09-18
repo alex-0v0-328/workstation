@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-09-18
+
+Packaging hardening and data-safety documentation; no runtime behavior changes.
+
+- Fix CI packaging failure: the custom sign hook now skips signing when no certificate is configured instead of aborting the build.
+- Drop the MSIX target and keep NSIS EXE + MSI. MSIX signing was proven in 0.3.0, but a self-signed MSIX requires a manual certificate-trust step that adds friction without value here.
+- Document the academic JSON import as the supported external data interface (semesters, courses, assessments, hurdles, timetable sources and events) alongside in-app editing, and document that third-party "leftover cleaner" uninstallers wipe `%APPDATA%` data while the app's own uninstaller keeps it.
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.3.0 — 2026-09-18
 
 Packaging and architecture-guard release; no user-data behavior changes.

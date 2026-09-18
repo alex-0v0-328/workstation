@@ -42,6 +42,15 @@ Hidden packaged-EXE screenshots time out on this host after fonts load. Full int
 - Installer hashes: EXE 121,562,480 bytes SHA-256 `CF5442C838DBECF7FF0F60ABC36DCD0E654E899CE5E1DDA4D3039DBF5AE451EB`; MSI 136,028,160 bytes SHA-256 `E6E78B03128402A369DDAF1B4E169F1BB1CCEA9AC77DED751E0488FCCD48CBC4`; MSIX 177,708,657 bytes SHA-256 `71469CFE7CE612BE44FF84B31BED8A6EE562E7729CBC309E3BB8D13E3C89E61E`.
 - Installed-app data onboarding performed against the real profile with pre-backup (`workspace.db.backup-*` + `before-import-*.json`): one semester, four courses, 21 assessments, three hurdles, and the live university subscription (144 events, all course-mapped). MSIX installation requires trusting `.local/certs/workstation-dev.cer` first (see README); that install path plus real subscription refresh in the installed app remain manual checks.
 
+## Verified on 2026-09-18 (0.4.0)
+
+- `npm.cmd test`: 35 tests passed across seven suites; `npm.cmd run build`: passed.
+- `npm.cmd run smoke`: passed (`SMOKE_OK`, `PERSISTENCE_OK`).
+- `npm.cmd run package`: NSIS EXE + MSI only (MSIX shelved), both signed with the self-signed dev certificate via `scripts/sign.cjs`; the NSIS uninstaller signed as well. The sign hook now no-ops without a certificate, so the CI packaging failure (`no certificate configured for signing`) is resolved.
+- `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`).
+- Installer hashes: EXE 121,562,328 bytes SHA-256 `6E2C608157D03B17FF8BA47198FDDE85ED73EA6434614C4E5F432B251BAD988D`; MSI 136,028,160 bytes SHA-256 `3C6FC6A3A16F99EA1A0CDD9856673B8E3DD5485552D4CFDB3EB6F41EFB065A71`.
+- Real-profile data incident: the 0.3.0 academic onboarding was wiped by a third-party uninstaller's leftover cleanup (the app's own uninstaller preserves data). Data was re-imported into the fresh profile (verified counts identical), and a personal academic import package was produced for in-app self-service restore. This event motivated the README data-safety section.
+
 ## Requires user-owned configuration or manual installed-app verification
 
 - Google OAuth browser flow, consent policy, refresh after expiry, revoke/reconnect.

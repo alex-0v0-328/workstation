@@ -28,15 +28,11 @@ npm.cmd run package
 node scripts/packaged-check.cjs
 ```
 
-`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。`package` 产出三种 Windows x64 安装格式到 `release/`：`Workstation Setup x.y.z.exe`（NSIS）、`.msi`、`.msix`；打包永不向 GitHub 发布（`--publish never`）。`node scripts/organize-release.cjs` 把各版本安装包归档到 `release/<版本号>/`。
+`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。`package` 产出两种 Windows x64 安装格式到 `release/`：`Workstation Setup x.y.z.exe`（NSIS）与 `.msi`；打包永不向 GitHub 发布（`--publish never`）。本机存在 `.local/certs/` 自签名开发证书时两种格式都会签名（自签名不是商业代码签名，SmartScreen 仍可能提示），CI 等无证书环境自动不签名。`node scripts/organize-release.cjs` 把各版本安装包归档到 `release/<版本号>/`。MSIX 在 0.3.0 评估后搁置：自签名 MSIX 需先手动信任证书才能安装，没有实际收益。
 
-安装包使用 `.local/certs/` 下的自签名开发证书签名（该目录不纳入 Git；缺失时自动跳过 MSIX 并不签名其余格式）。自签名不是商业代码签名，SmartScreen 仍可能提示。安装 MSIX 前需先信任该证书一次：
+## 数据安全与卸载
 
-```powershell
-Import-Certificate -FilePath .local\certs\workstation-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
-```
-
-（需要管理员权限；也可以双击 `.cer` 文件安装到“受信任的根证书颁发机构”。EXE 与 MSI 无需此步骤。）
+应用自带卸载程序**保留**用户数据（`%APPDATA%\Workstation`）。但 Geek Uninstaller 等第三方工具的"残留清扫"会强制删除该目录——卸载或重装前请先在“设置 → 数据与备份”导出 JSON 备份。学习页的“导入学业 JSON”可以把学期包（课程、考核、hurdle、课表订阅与事件）导入回来，与界面内编辑等效，是对外数据接口。
 
 ## 录入学业
 

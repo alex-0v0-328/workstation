@@ -14,15 +14,12 @@ function findSigntool() {
 }
 
 module.exports = async function sign(configuration) {
-  const signtool = findSigntool()
-  const args = ['sign', '/fd', (configuration.hash || 'sha256').toLowerCase()]
   const csc = configuration.cscInfo
-  if (csc && 'file' in csc) {
-    args.push('/f', csc.file)
-    if (csc.password) args.push('/p', csc.password)
-  } else {
-    throw new Error('no certificate configured for signing')
-  }
+  // No certificate (CI or a machine without .local/certs): skip signing instead of failing the build.
+  if (!csc || !('file' in csc)) return
+  const signtool = findSigntool()
+  const args = ['sign', '/fd', (configuration.hash || 'sha256').toLowerCase(), '/f', csc.file]
+  if (csc.password) args.push('/p', csc.password)
   if (configuration.name) args.push('/d', configuration.name)
   if (configuration.site) args.push('/du', configuration.site)
   args.push(configuration.path)
