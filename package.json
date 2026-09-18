@@ -1,6 +1,6 @@
 {
   "name": "workstation",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "A local-first Windows workspace for tasks, study, and mail.",
   "author": "Alex",
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "npm run build && electron-builder --win nsis --x64",
+    "package": "npm run build && node scripts/package.cjs",
     "postinstall": "electron-builder install-app-deps",
     "smoke": "node scripts/smoke.cjs"
   },
@@ -31,14 +31,32 @@
       "**/*.node"
     ],
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis",
+        "msi",
+        "appx"
+      ],
       "signAndEditExecutable": true,
-      "icon": "resources/icon.ico"
+      "icon": "resources/icon.ico",
+      "signtoolOptions": {
+        "signingHashAlgorithms": [
+          "sha256"
+        ],
+        "sign": "scripts/sign.cjs"
+      }
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false
+    },
+    "msi": {
+      "upgradeCode": "7f3a9c2e-4b6d-4e1a-9c5f-2d8b0a1e6f3d"
+    },
+    "appx": {
+      "publisherDisplayName": "Alex",
+      "publisher": "CN=Workstation Dev",
+      "artifactName": "Workstation-Setup-${version}-x64.msix"
     }
   },
   "dependencies": {

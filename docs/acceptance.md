@@ -32,6 +32,16 @@ Hidden packaged-EXE screenshots time out on this host after fonts load. Full int
 - Installer: `Workstation Setup 0.2.0.exe`, 121,556,877 bytes. SHA-256: `A2C9686D07CA58F50FC54374783EA8FFBE1C440D6FA63FF808A1A93566374517`.
 - Real-feed compatibility spot check (kept out of version control per privacy rules): the user's actual university subscription URL served 56 KB over direct HTTPS and parsed into 144 single events; embedded Australia/Melbourne VTIMEZONE produced correct local wall times across the 2026-10-04 DST boundary (+10:00 before, +11:00 after) with zero duplicate IDs and stable ID sequences across parses. This validates the feed shape only; the user's installed-app subscription result remains a manual check.
 
+## Verified on 2026-09-18 (0.3.0)
+
+- `npm.cmd test`: 35 tests passed across seven suites, including the new module-plane boundary guards (shared/renderer/preload/main import isolation and bridge-only renderer service access).
+- `npm.cmd run build`: TypeScript and all three production bundles passed.
+- `npm.cmd run package`: NSIS EXE + MSI + MSIX produced in one pass via `scripts/package.cjs` with `--publish never` (the GH_TOKEN publish failure cannot recur). All three installers and the NSIS uninstaller are signed with the self-signed dev certificate through the custom sign hook (`scripts/sign.cjs`, Windows SDK 10.0.26100 signtool; the electron-builder bundled 2018 signtool cannot sign MSIX). `signtool verify /pa` reports only the expected untrusted-root error on every format.
+- `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`).
+- `node scripts/organize-release.cjs`: installers archived per version under `release/<version>/`; `win-unpacked/` and `latest.yml` remain at the root.
+- Installer hashes: EXE 121,562,480 bytes SHA-256 `CF5442C838DBECF7FF0F60ABC36DCD0E654E899CE5E1DDA4D3039DBF5AE451EB`; MSI 136,028,160 bytes SHA-256 `E6E78B03128402A369DDAF1B4E169F1BB1CCEA9AC77DED751E0488FCCD48CBC4`; MSIX 177,708,657 bytes SHA-256 `71469CFE7CE612BE44FF84B31BED8A6EE562E7729CBC309E3BB8D13E3C89E61E`.
+- Installed-app data onboarding performed against the real profile with pre-backup (`workspace.db.backup-*` + `before-import-*.json`): one semester, four courses, 21 assessments, three hurdles, and the live university subscription (144 events, all course-mapped). MSIX installation requires trusting `.local/certs/workstation-dev.cer` first (see README); that install path plus real subscription refresh in the installed app remain manual checks.
+
 ## Requires user-owned configuration or manual installed-app verification
 
 - Google OAuth browser flow, consent policy, refresh after expiry, revoke/reconnect.

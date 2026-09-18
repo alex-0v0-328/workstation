@@ -24,10 +24,10 @@
 ## Verification and delivery
 
 - `npm.cmd ci` installs locked dependencies and rebuilds better-sqlite3 for Electron. The Node and Electron native ABIs differ; run database integration through Electron.
-- `npm.cmd test`: isolated domain/calendar/MIME/digest checks. Provider tests use fake responses, not live account verification.
+- `npm.cmd test`: isolated domain/calendar/MIME/digest checks plus module-plane boundary guards (shared/renderer/preload/main import rules). Provider tests use fake responses, not live account verification.
 - `npm.cmd run build`: TypeScript plus main/preload/renderer production builds.
 - `npm.cmd run smoke`: hidden real Electron UI, isolated `.local/` data, task/study/calendar/theme flows, backup and restart checks. Do not remove isolation or use the user's formal profile for tests.
-- `npm.cmd run package`: unsigned Windows x64 NSIS installer in `release/`. `scripts/generate-icon.ps1` regenerates the checked-in application icon.
+- `npm.cmd run package`: `scripts/package.cjs` drives electron-builder with `--publish never` (never contacts GitHub) and produces NSIS EXE + MSI + MSIX for Windows x64 in `release/`. When `.local/certs/workstation-dev.pfx` (self-signed dev certificate, never committed) exists it signs all three formats; MSIX is skipped without it since unsigned MSIX cannot be installed. `node scripts/organize-release.cjs` sorts installers into `release/<version>/` while `win-unpacked/` and `latest.yml` stay at the root. `scripts/generate-icon.ps1` regenerates the checked-in application icon.
 - `node scripts/packaged-check.cjs`: packaged EXE resource/bridge/SQLite/restart validation without screenshot capture. On this Windows host, screenshots of the hidden packaged EXE time out; full UI screenshots are verified with the Electron development launcher instead.
 - GitHub remote: `https://github.com/alex-0v0-328/workstation`. Use cohesive commits and milestone tags. CI checks Windows builds and uploads installer artifacts.
 - Keep `docs/acceptance.md` current with verified evidence and remaining manual/provider checks. Keep `README.md` and `docs/setup.md` consistent with user-visible behavior.

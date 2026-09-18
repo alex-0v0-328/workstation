@@ -28,7 +28,15 @@ npm.cmd run package
 node scripts/packaged-check.cjs
 ```
 
-`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。生产安装包生成到 `release/`。初次构建的安装包未做商业代码签名。
+`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。`package` 产出三种 Windows x64 安装格式到 `release/`：`Workstation Setup x.y.z.exe`（NSIS）、`.msi`、`.msix`；打包永不向 GitHub 发布（`--publish never`）。`node scripts/organize-release.cjs` 把各版本安装包归档到 `release/<版本号>/`。
+
+安装包使用 `.local/certs/` 下的自签名开发证书签名（该目录不纳入 Git；缺失时自动跳过 MSIX 并不签名其余格式）。自签名不是商业代码签名，SmartScreen 仍可能提示。安装 MSIX 前需先信任该证书一次：
+
+```powershell
+Import-Certificate -FilePath .local\certs\workstation-dev.cer -CertStoreLocation Cert:\LocalMachine\Root
+```
+
+（需要管理员权限；也可以双击 `.cer` 文件安装到“受信任的根证书颁发机构”。EXE 与 MSI 无需此步骤。）
 
 ## 录入学业
 

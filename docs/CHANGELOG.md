@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-09-18
+
+Packaging and architecture-guard release; no user-data behavior changes.
+
+- Package Windows x64 as NSIS EXE, MSI, and MSIX in one `npm run package` pass; electron-builder always runs with `--publish never` so packaging never contacts GitHub.
+- Sign all three formats with the local self-signed development certificate when `.local/certs/workstation-dev.pfx` exists (never committed); MSIX is skipped without it because unsigned MSIX cannot be installed.
+- Sort versioned installers into `release/<version>/` via `scripts/organize-release.cjs`, keeping `win-unpacked/` and `latest.yml` at the root.
+- Add module-plane boundary tests that fail if domain data (`src/shared`), presentation (`src/renderer`), or desktop services (`src/main`) import across planes, so future edits to one plane cannot leak into another.
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.2.0 — 2026-09-18
 
 Maintenance release hardening timetable week rules, cache hygiene, and release bookkeeping.
