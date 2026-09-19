@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — 2026-09-19
+
+Theme package architecture and a redesigned shared shell.
+
+- 内置仅 Windows 11 主题：Mica 毛玻璃与悬浮侧边栏 shell；主题包可声明 Mica/Acrylic 材质，系统不支持时自动降级实色。
+- 用可安装的 `.wstheme.json` 主题包替代旧的内置多主题机制：format 1 契约位于 `src/shared/theme-manifest.ts`，可在设置页安装/移除。示例包随应用提供：Catppuccin（Latte/Frappé/Macchiato/Mocha 四变体）与复古 Windows 任务栏 shell，均支持一键安装。
+- 设置页外观区改为行式列表，移除示意图卡片。
+- 工作区设置从 `flavor` 迁移为 `theme` + `variant`；旧配置仍可解析，且切换主题不会重置数据或草稿。
+- 将 `scripts/build-themes.cjs` 插入构建链（`npm run build`）与 smoke 前置步骤，生成 `themes/dist/*.wstheme.json`。
+- 通过 `extraResources` 将 `themes/dist` 打包为安装目录下的 `themes`，供应用加载。
+- 新增 `tests/theme.test.ts`，校验主题包构建、CSS 内联、共享 CSS 与变体解析。
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.4.0 — 2026-09-18
 
 Packaging hardening and data-safety documentation; no runtime behavior changes.

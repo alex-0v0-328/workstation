@@ -1,26 +1,26 @@
-# Workstation 0.1
+# Workstation 0.5.0
 
-Local-first Windows 11 x64 desktop application. SQLite owns semesters, courses, assessments, manual tasks, timetable events, settings, and digest progress. One Gmail account; no application account or cloud synchronization.
+本地优先的 Windows 11 x64 桌面应用。SQLite 持有学期、课程、考核、手动任务、课表事件、设置和邮件摘要进度。一个 Gmail 账号；没有应用账号或云同步。
 
-## Accepted behavior
+## 已确认行为
 
-- TODO aggregates assessment records and manual tasks without duplication. Completion is independent of grades and hurdle status.
-- Semesters and courses are user-defined. Dates may be unknown or date-only. Assessment types are extensible. Weights and scores are optional; no implicit rescaling or pass prediction.
-- Hurdles retain original requirements with manual confirmation and optional assessment links.
-- Timetables accept ICS files, subscription URLs, and manual events. Imports preview before applying. External HTML pages are links, not scraped sources.
-- Windows Fluent is the first theme, with system/light/dark modes. Developer-shipped themes may replace layouts through a common view model and actions.
-- Gmail is read-only. Mail content is untrusted. DeepSeek translates individual messages and summarizes new inbox mail at 20:00 by default, including read messages. Attachments are excluded.
-- Close-to-tray, opt-in login launch, persistent reminder/digest state, backup and restore are part of the first delivery. Missed work is coalesced after resume.
+- TODO 汇总考核记录和手动任务，不重复。完成状态与成绩和 hurdle 状态独立。
+- 学期和课程由用户定义。日期可能未知或仅日期。考核类型可扩展。权重和分数可选；无隐式缩放或及格预测。
+- Hurdle 保留原始要求，支持人工确认和可选的考核关联。
+- 课表接受 ICS 文件、订阅 URL 和手动事件。导入前预览。外部 HTML 页面作为链接，不抓取。
+- 内置主题仅 Windows 11 原生（Mica 毛玻璃、悬浮侧边栏、浅色/深色/跟随系统）。其余主题为可安装的 `.wstheme.json` 主题包。安装包附带两个示例主题，可在“设置 → 外观与桌面”一键安装：Catppuccin（Latte/Frappé/Macchiato/Mocha 四口味）和复古 Windows 95/98（固定经典外观与任务栏布局）。主题切换不重置数据与草稿；Mica 材质在系统不支持时自动降级为实色。
+- Gmail 只读。邮件内容不可信。DeepSeek 翻译单封邮件，并默认在 20:00 总结新增收件箱邮件（包括已读邮件）。不包含附件。
+- 关闭到托盘、可选开机启动、持久化提醒/摘要状态、备份与恢复均属于首次交付范围。恢复后补做遗漏工作。
 
-## Delivery sequence
+## 交付顺序
 
-1. Desktop/data/theme foundation and typed IPC.
-2. Study wizard, reusable template, TODO, grades, timetable, backup.
-3. Gmail OAuth, safe reading, translation, daily digest, scheduling.
-4. Automated tests, UI inspection, installer, setup and acceptance documentation.
+1. 桌面/数据/主题基础与类型化 IPC。
+2. 学习向导、可复用模板、TODO、成绩、课表、备份。
+3. Gmail OAuth、安全读取、翻译、每日摘要、调度。
+4. 自动化测试、UI 检查、安装包、设置与验收文档。
 
-## Defaults and boundaries
+## 默认与边界
 
-One local profile, one Gmail account, Chinese UI, system time zone, no repeating manual tasks. Semester/course archive retains history. User-created theme packages and layout editors are outside 0.1. Credentials are encrypted using Windows-backed Electron safeStorage, never exported. Backup restores local study/task/settings data and re-creates caches from providers.
+一个本地用户、一个 Gmail 账号、中文界面、系统时区、无重复手动任务。学期/课程归档保留历史。主题包可在设置视图中安装和移除；布局编辑器不在 0.5.0 范围内。凭据使用 Windows 支持的 Electron `safeStorage` 加密，从不导出。备份恢复本地学业/任务/设置数据，并从提供商重新创建缓存。
 
-Live provider tests require user-owned OAuth configuration and a DeepSeek key. A packaged build is not proof of notification delivery, OAuth success, or real timetable compatibility.
+线上提供商测试需要用户自己的 OAuth 配置和 DeepSeek key。打包构建不能证明通知投递、OAuth 成功或真实课表兼容性。

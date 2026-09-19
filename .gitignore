@@ -13,3 +13,4 @@ credentials*.json
 client_secret*.json
 *.log
 .local/
+themes/dist/

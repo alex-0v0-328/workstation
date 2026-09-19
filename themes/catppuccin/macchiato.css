@@ -1,0 +1,17 @@
+.theme-catppuccin.variant-macchiato {
+  --accent: #c6a0f6;
+  --accent-soft: #8aadf4;
+  --bg: #24273a;
+  --sidebar: #1e2030;
+  --surface: #181926;
+  --input: #363a4f;
+  --text: #cad3f5;
+  --muted: #a5adcb;
+  --border: #494d64;
+  --strong-border: #6e738d;
+  --hover: #363a4f;
+  --tint: #c6a0f626;
+  --warning: #eed49f;
+  --red: #ed8796;
+  color-scheme: dark;
+}

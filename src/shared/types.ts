@@ -7,7 +7,8 @@ export interface Assessment extends Task { courseId: string; category: string; o
 export interface Hurdle { id: string; courseId: string; text: string; scope: 'course' | 'assessment' | 'group'; assessmentIds: string[]; status: 'pending' | 'met' | 'unmet' }
 export interface CalendarEvent { id: string; sourceId: string; uid: string; courseId: string; title: string; start: string; end: string; allDay: boolean; location: string }
 export interface CalendarSource { id: string; name: string; url: string; semesterId: string; lastSync: string; error: string }
-export interface Settings { theme: 'windows'; appearance: 'system' | 'light' | 'dark'; timezone: string; startAtLogin: boolean; notifications: boolean; digestEnabled: boolean; digestTime: string; digestSince: string; model: string }
+export interface Settings { theme: string; variant: string; appearance: 'system' | 'light' | 'dark'; timezone: string; startAtLogin: boolean; notifications: boolean; digestEnabled: boolean; digestTime: string; digestSince: string; model: string }
+export interface ThemeState { themes: import('./theme-manifest').ThemeManifest[]; examples: { id: string; name: string; description: string }[]; active: { id: string; variant: string; material: string } }
 export interface Workspace { version: 1; revision: number; semesters: Semester[]; courses: Course[]; assessments: Assessment[]; tasks: Task[]; hurdles: Hurdle[]; events: CalendarEvent[]; sources: CalendarSource[]; settings: Settings }
 export interface TodoItem extends Task { source: 'assessment' | 'task'; courseId?: string; courseName?: string; category?: string; color?: string; timezone?: string; opens?: string }
 export interface Mail { id: string; threadId: string; subject: string; from: string; date: string; snippet: string; text: string; html: string; unread: boolean; attachments: { name: string; size: number }[] }
@@ -33,5 +34,9 @@ export interface Bridge {
   digests(): Promise<Digest[]>
   summarize(): Promise<Digest>
   openExternal(url: string): Promise<void>
+  themes(): Promise<ThemeState>
+  installTheme(): Promise<ThemeState | null>
+  installExampleTheme(id: string): Promise<ThemeState>
+  removeTheme(id: string): Promise<ThemeState>
   onChanged(callback: () => void): () => void
 }

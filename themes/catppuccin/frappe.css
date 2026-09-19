@@ -1,0 +1,17 @@
+.theme-catppuccin.variant-frappe {
+  --accent: #ca9ee6;
+  --accent-soft: #8caaee;
+  --bg: #303446;
+  --sidebar: #292c3c;
+  --surface: #232634;
+  --input: #414559;
+  --text: #c6d0f5;
+  --muted: #a5adce;
+  --border: #51576d;
+  --strong-border: #737994;
+  --hover: #414559;
+  --tint: #ca9ee626;
+  --warning: #e5c890;
+  --red: #e78284;
+  color-scheme: dark;
+}

@@ -1,0 +1,16 @@
+/* Windows 11 Fluent: Mica-style surfaces, soft shadows, Segoe UI Variable. */
+.theme-windows.light-mode{
+  --accent:#0067c0;--bg:#f6f7f9;--sidebar:#eef1f5;--surface:#fff;--input:#fff;
+  --text:#242424;--muted:#717780;--border:#e5e7eb;--strong-border:#b9bec5;
+  --hover:#f2f5f9;--tint:#eaf3fc;--warning:#a34613;
+  color-scheme:light}
+.theme-windows.dark-mode{
+  --accent:#60b6ff;--bg:#1b1c1f;--sidebar:#202125;--surface:#25262a;--input:#303135;
+  --text:#f1f1f2;--muted:#a5a8af;--border:#38393e;--strong-border:#676970;
+  --hover:#303238;--tint:#263b50;--warning:#ffb17e;
+  color-scheme:dark}
+.theme-windows .sidebar{backdrop-filter:saturate(1.4)}
+.theme-windows .surface{border:1px solid var(--border);box-shadow:var(--shadow4)}
+.theme-windows.material-on.root-theme{background:transparent!important;background-color:transparent!important}
+.theme-windows.material-on .sidebar{background:color-mix(in srgb,var(--sidebar) 72%,transparent);backdrop-filter:blur(20px) saturate(125%)}
+.theme-windows.material-on .app-topbar{background:transparent}

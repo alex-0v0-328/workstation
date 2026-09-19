@@ -1,17 +1,18 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, Notification, powerMonitor } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, Notification, powerMonitor, nativeTheme } from 'electron'
 import { join } from 'node:path'
 import { readFile, writeFile, stat, mkdir } from 'node:fs/promises'
 import { DateTime } from 'luxon'
 import { z } from 'zod'
 import { Store } from './store'
 import { Providers } from './providers'
+import { createThemeService, type ThemeService } from './themes'
 import { aggregateTodos, reminderCandidates, validateWorkspace, workspaceSchema, dueDigestSlot } from '../shared/domain'
 import { parseCalendar, mergeCalendarMappings } from '../shared/calendar'
 import type { Workspace, CalendarSource } from '../shared/types'
 
 if (process.env.WORKSTATION_TEST_DATA) app.setPath('userData', process.env.WORKSTATION_TEST_DATA)
 app.setAppUserModelId('io.github.alex0v0328.workstation')
-let window: BrowserWindow | null = null, tray: Tray | null = null, store: Store, providers: Providers
+let window: BrowserWindow | null = null, tray: Tray | null = null, store: Store, providers: Providers, themeService: ThemeService
 let quitting = false, ticking = false, syncing = false
 const changed = () => window?.webContents.send('workspace:changed')
 const idSchema = z.string().min(1).max(200)
@@ -81,6 +82,7 @@ function registerIpc() {
     }
     const saved = store.save(next)
     if (previous.settings.startAtLogin !== saved.settings.startAtLogin && app.isPackaged) app.setLoginItemSettings({ openAtLogin: saved.settings.startAtLogin, args: ['--hidden'] })
+    if (previous.settings.theme !== saved.settings.theme || previous.settings.variant !== saved.settings.variant) themeService.applyMaterial()
     changed(); return saved
   })
   ipc('backup:export', async () => {
@@ -147,6 +149,10 @@ function registerIpc() {
     if (!['https:', 'http:', 'mailto:'].includes(url.protocol) || url.username || url.password) throw new Error('不支持的链接')
     await shell.openExternal(url.toString())
   })
+  ipc('themes:list', () => themeService.list())
+  ipc('themes:install', () => themeService.install())
+  ipc('themes:install-example', input => themeService.installExample(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
+  ipc('themes:remove', input => themeService.remove(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
 }
 async function tick() {
   if (ticking) return
@@ -178,8 +184,14 @@ async function tick() {
   } catch (e) { providers.lastError = e instanceof Error ? e.message : '后台任务失败'; changed() }
   finally { ticking = false }
 }
+function backgroundColor(): string {
+  const appearance = store.load().settings.appearance
+  const dark = appearance === 'system' ? nativeTheme.shouldUseDarkColors : appearance === 'dark'
+  return dark ? '#1b1c1f' : '#f3f3f3'
+}
 function createWindow() {
-  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 960, minHeight: 640, title: 'Workstation', icon: join(__dirname, '../../resources/icon.png'), backgroundColor: '#f3f3f3', autoHideMenuBar: true, show: false, webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 960, minHeight: 640, title: 'Workstation', icon: join(__dirname, '../../resources/icon.png'), backgroundColor: backgroundColor(), autoHideMenuBar: true, show: false, webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  themeService.applyMaterial()
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', event => event.preventDefault())
   window.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
@@ -205,6 +217,7 @@ else {
       await mkdir(app.getPath('userData'), { recursive: true })
       store = new Store(join(app.getPath('userData'), 'workspace.db'))
       providers = new Providers(store, join(app.getPath('userData'), 'secrets.bin'), changed)
+      themeService = createThemeService({ store, getWindow: () => window, changed })
       registerIpc(); createWindow()
       if (!process.env.WORKSTATION_TEST_DATA) {
         setInterval(() => { void tick() }, 60000).unref()

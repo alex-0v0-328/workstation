@@ -3,7 +3,7 @@
 - Work only in this repository. Preserve the active checkout and WIP.
 - Communicate in Chinese; use American English for code, comments, and commits.
 - Product decisions: `docs/product.md`. User input template: `docs/academic-template.md`. Import fixture: `examples/academic-example.json`.
-- Keep business data and operations independent of theme components. The first theme is Windows Fluent, with light and dark modes.
+- Keep business data and operations independent of theme components. Only the `windows` theme ships built-in (light/dark modes, Mica material, sidebar shell). All other themes are installable `.wstheme.json` packages defined by the contract in `src/shared/theme-manifest.ts`; packages may declare Mica/Acrylic material, degrading to solid color when unsupported.
 - Academic assessments are the source of truth in TODO views; never create editable duplicate tasks.
 - Keep credentials, personal academic information, mail, local databases, and build outputs out of Git.
 - Use PowerShell and npm.cmd on Windows. Run `npm.cmd test` and `npm.cmd run build` before claiming an implementation milestone.
@@ -15,7 +15,10 @@
 - `src/shared/`: types, validation, grade/TODO/date rules, calendar recurrence. Keep these independent of themes and Electron.
 - `src/main/`: SQLite ownership, revision checks, provider requests, encrypted secrets, backup/restore and scheduler. IPC validates input and only accepts the main application frame.
 - `src/preload/`: explicit typed bridge only. Do not expose raw Electron, SQL or filesystem APIs.
-- `src/renderer/src/`: feature views and local form state. `themes.tsx` owns the developer-shipped theme registry and layout contract; `model.tsx` supplies shared state/actions. Theme switches must not reset data or drafts.
+- `src/renderer/src/`: feature views and local form state. `themes/registry.tsx` owns the developer-shipped theme registry and layout contract; `model.tsx` supplies shared state/actions. Theme switches must not reset data or drafts.
+- Theme shells are `sidebar` and `taskbar` primitives under `src/renderer/src/themes/shells/`. The root DOM class contract is `root-theme theme-<id> variant-<vid> light-mode|dark-mode shell-<sidebar|taskbar> material-on|off`.
+- Theme packages are validated and built by `scripts/build-themes.cjs`, which runs before both `npm run build` and `npm run smoke` and inlines shared/variant CSS into `themes/dist/*.wstheme.json`.
+- Electron-builder packs the built theme files via `extraResources` (`themes/dist` → `themes`) so the packaged app can load them.
 - Modal dialogs use the native HTML dialog lifecycle. Regression: unmounting the previous Fluent modal left `#root` aria-hidden. Preserve the smoke check for accessibility after closing dialogs.
 - Academic timestamps preserve date-only versus precise values. Apply the semester time zone to assessments; apply the app time zone to manual tasks. No invented 23:59 deadlines or automatic hurdle decisions.
 - Digest windows are half-open; advance the checkpoint only after all included mail succeeds. Retain chunk cache for partial retries and do not mark mail outside the window processed.

@@ -1,6 +1,39 @@
 import { describe, it, expect } from 'vitest'
 import { aggregateTodos, calculateGrade, validateWorkspace, emptyWorkspace, reminderCandidates } from '../src/shared/domain'
 
+describe('settings schema', () => {
+  it('accepts theme ids as slugs and defaults a missing variant to empty', () => {
+    for (const theme of ['windows', 'catppuccin', 'retro']) {
+      const state = emptyWorkspace()
+      state.settings.theme = theme
+      expect(validateWorkspace(state).settings.theme).toBe(theme)
+    }
+    const legacy = JSON.parse(JSON.stringify(emptyWorkspace()))
+    delete legacy.settings.variant
+    delete legacy.settings.flavor
+    expect(validateWorkspace(legacy).settings.variant).toBe('')
+  })
+  it('rejects malformed theme ids', () => {
+    const state = JSON.parse(JSON.stringify(emptyWorkspace()))
+    state.settings.theme = 'Neon!'
+    expect(() => validateWorkspace(state)).toThrow()
+  })
+})
+
+describe('theme packages', () => {
+  it('accepts a valid package and rejects invalid ones', async () => {
+    const { validateThemePackage } = await import('../src/shared/theme-manifest')
+    const good = { format: 1, id: 'catppuccin', name: 'Catppuccin', version: '1.0.0', shell: 'sidebar', variants: [{ id: 'mocha', name: 'Mocha', dark: true, accent: '#cba6f7', css: '.x{}' }] }
+    const parsed = validateThemePackage(good)
+    expect(parsed.material).toBe('none')
+    expect(() => validateThemePackage({ ...good, id: 'windows' })).toThrow()
+    expect(() => validateThemePackage({ ...good, shell: 'grid' })).toThrow()
+    expect(() => validateThemePackage({ ...good, material: 'glass' })).toThrow()
+    expect(() => validateThemePackage({ ...good, variants: [...good.variants, { ...good.variants[0] }] })).toThrow()
+    expect(() => validateThemePackage({ ...good, variants: [{ ...good.variants[0], fluent: { 'bad-key': '#ffffff' } }] })).toThrow()
+  })
+})
+
 describe('academic integrity', () => {
   it('counts a real zero but does not count an unpublished grade or a pass/fail as numeric', () => {
     const grade = calculateGrade([

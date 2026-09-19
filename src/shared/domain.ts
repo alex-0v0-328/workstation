@@ -19,11 +19,11 @@ export const workspaceSchema = z.object({
   hurdles: z.array(z.object({ id, courseId: id, text: name, scope: z.enum(['course', 'assessment', 'group']), assessmentIds: z.array(id), status: z.enum(['pending', 'met', 'unmet']) })).max(10000),
   events: z.array(z.object({ id, sourceId: text, uid: id, courseId: text, title: name, start: date.refine(Boolean), end: date.refine(Boolean), allDay: z.boolean(), location: text })).max(50000),
   sources: z.array(z.object({ id, name, url, semesterId: id, lastSync: date, error: text })).max(100),
-  settings: z.object({ theme: z.literal('windows'), appearance: z.enum(['system', 'light', 'dark']), timezone: zone, startAtLogin: z.boolean(), notifications: z.boolean(), digestEnabled: z.boolean(), digestTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), digestSince: date, model: z.string().regex(/^[a-zA-Z0-9._-]{1,100}$/) })
+  settings: z.object({ theme: z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/), variant: z.string().max(50).default(''), appearance: z.enum(['system', 'light', 'dark']), timezone: zone, startAtLogin: z.boolean(), notifications: z.boolean(), digestEnabled: z.boolean(), digestTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), digestSince: date, model: z.string().regex(/^[a-zA-Z0-9._-]{1,100}$/) })
 })
 
 export function emptyWorkspace(): Workspace {
-  return { version: 1, revision: 0, semesters: [], courses: [], assessments: [], tasks: [], hurdles: [], events: [], sources: [], settings: { theme: 'windows', appearance: 'system', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, startAtLogin: false, notifications: true, digestEnabled: false, digestTime: '20:00', digestSince: '', model: 'deepseek-chat' } }
+  return { version: 1, revision: 0, semesters: [], courses: [], assessments: [], tasks: [], hurdles: [], events: [], sources: [], settings: { theme: 'windows', variant: '', appearance: 'system', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, startAtLogin: false, notifications: true, digestEnabled: false, digestTime: '20:00', digestSince: '', model: 'deepseek-chat' } }
 }
 
 export function validateWorkspace(input: unknown): Workspace {

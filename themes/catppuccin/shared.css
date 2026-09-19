@@ -1,0 +1,37 @@
+.theme-catppuccin {
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 3px 10px #00000014;
+  --brand-gradient: linear-gradient(145deg, var(--accent), var(--accent-soft));
+}
+
+.theme-catppuccin .surface {
+  border-width: 2px;
+}
+
+.theme-catppuccin .sidebar {
+  border-right-width: 2px;
+}
+
+.theme-catppuccin .app-topbar {
+  border-bottom-width: 2px;
+}
+
+.theme-catppuccin .task-row:hover,
+.theme-catppuccin .mail-item:hover {
+  background: var(--tint);
+}
+
+.theme-catppuccin .empty-icon {
+  border-radius: 20px;
+}
+
+.theme-catppuccin .error-note {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+
+.theme-catppuccin input,
+.theme-catppuccin select,
+.theme-catppuccin textarea {
+  border-width: 1.5px;
+}

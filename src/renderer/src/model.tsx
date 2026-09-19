@@ -1,12 +1,13 @@
 import { createContext, useContext } from 'react'
-import type { Workspace, Task, Assessment } from '../../shared/types'
+import type { Workspace, Task, Assessment, ThemeState } from '../../shared/types'
 import { DateTime } from 'luxon'
 export interface AppModel {
-  state: Workspace; busy: boolean; page: string; feedback?: string; setPage(page: string): void
+  state: Workspace; themeState: ThemeState | null; busy: boolean; page: string; feedback?: string; setPage(page: string): void
   mutate(change: (state: Workspace) => void): Promise<boolean>
   run<T>(action: () => Promise<T>, success?: string): Promise<T | undefined>
   editTask(item?: Task | Assessment, courseId?: string): void
   reload(): Promise<void>
+  setThemeState(state: ThemeState | null): void
 }
 export const Model = createContext<AppModel | null>(null)
 export const useModel = () => useContext(Model)!

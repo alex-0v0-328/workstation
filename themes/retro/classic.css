@@ -1,0 +1,200 @@
+.theme-retro {
+  --accent: #000080;
+  --accent-soft: #1084d0;
+  --bg: #008080;
+  --sidebar: #c0c0c0;
+  --surface: #c0c0c0;
+  --input: #ffffff;
+  --text: #000000;
+  --muted: #3f3f3f;
+  --border: #808080;
+  --strong-border: #404040;
+  --hover: #d4d0c8;
+  --tint: #0000801f;
+  --warning: #800000;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow: none;
+  --shadow-pop: 4px 4px 0 #00000040;
+  --font: Tahoma, 'MS Sans Serif', 'Microsoft YaHei', sans-serif;
+  --brand-gradient: linear-gradient(90deg, #000080, #1084d0);
+  font-size: 12px;
+  color-scheme: light;
+}
+
+.theme-retro h1 {
+  font-size: 20px;
+}
+
+.theme-retro h2 {
+  font-size: 15px;
+}
+
+.theme-retro .surface {
+  border: 2px outset #c0c0c0;
+  border-color: #dfdfdf #404040 #404040 #dfdfdf;
+  box-shadow: none;
+}
+
+.theme-retro input,
+.theme-retro select,
+.theme-retro textarea {
+  background: #ffffff;
+  border: 2px inset #c0c0c0;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.theme-retro input:focus,
+.theme-retro select:focus,
+.theme-retro textarea:focus {
+  outline: 1px dotted #404040;
+  outline-offset: -3px;
+}
+
+.theme-retro .search {
+  background: #ffffff;
+  border: 2px inset #c0c0c0;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.theme-retro .fui-Button.fui-Button {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  border-radius: 0;
+  box-shadow: none;
+  color: #000000;
+}
+
+.theme-retro .fui-Button.fui-Button:hover {
+  background: #d4d0c8;
+}
+
+.theme-retro .fui-Button.fui-Button:active {
+  border-style: inset;
+  border-color: #404040 #ffffff #ffffff #404040;
+}
+
+.theme-retro .fui-Button.fui-Button:disabled {
+  color: #808080;
+}
+
+.theme-retro .fui-Badge.fui-Badge {
+  border: 1px solid #404040;
+  border-radius: 0;
+}
+
+.theme-retro .native-panel {
+  border: 2px outset #c0c0c0;
+  border-color: #dfdfdf #404040 #404040 #dfdfdf;
+  border-radius: 0;
+  padding: 0;
+}
+
+.theme-retro .native-panel .panel-heading {
+  background: var(--brand-gradient);
+  color: #ffffff;
+  padding: 4px 8px;
+}
+
+.theme-retro .native-panel .panel-heading h2 {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.theme-retro .native-panel .panel-content {
+  padding: 8px;
+}
+
+.theme-retro .native-panel .panel-footer {
+  padding: 8px;
+}
+
+.theme-retro .error-note {
+  background: #c0000022;
+}
+
+.theme-retro .week-day-heading.today strong {
+  background: var(--brand-gradient);
+  border-radius: 0;
+  color: #ffffff;
+}
+
+.theme-retro .app-message,
+.theme-retro .busy-indicator {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #dfdfdf #404040 #404040 #dfdfdf;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.theme-retro .taskbar-bar {
+  background: #c0c0c0;
+  border-top: 2px outset #c0c0c0;
+  border-color: #dfdfdf #404040 #404040 #dfdfdf;
+}
+
+.theme-retro .taskbar-start {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  border-radius: 0;
+  font-weight: bold;
+}
+
+.theme-retro .taskbar-start:active {
+  border-style: inset;
+  border-color: #404040 #ffffff #ffffff #404040;
+}
+
+.theme-retro .taskbar-tasks button {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  border-radius: 0;
+}
+
+.theme-retro .taskbar-tasks button[aria-pressed='true'],
+.theme-retro .taskbar-tasks button.active {
+  border-style: inset;
+  border-color: #404040 #ffffff #ffffff #404040;
+}
+
+.theme-retro .taskbar-clock {
+  background: #c0c0c0;
+  border: 2px inset #c0c0c0;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.theme-retro .taskbar-start-menu {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #dfdfdf #404040 #404040 #dfdfdf;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.theme-retro .taskbar-start-brand {
+  background: var(--brand-gradient);
+  color: #ffffff;
+}
+
+.theme-retro .taskbar-titlebar {
+  background: var(--brand-gradient);
+  color: #ffffff;
+}
+
+.theme-retro .taskbar-title-buttons i {
+  background: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  border-radius: 0;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+}
+
+.theme-retro .taskbar-desktop {
+  background: #008080;
+}

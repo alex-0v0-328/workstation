@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "id": "retro",
+  "name": "复古 Windows",
+  "version": "0.5.0",
+  "author": "Workstation",
+  "description": "Windows 95/98 经典：青绿桌面、灰色斜面面板与底部任务栏",
+  "shell": "taskbar",
+  "material": "none",
+  "variants": [
+    {
+      "id": "classic",
+      "name": "经典 95",
+      "dark": false,
+      "accent": "#000080",
+      "css": "classic.css",
+      "fluent": {
+        "colorNeutralBackground1": "#c0c0c0",
+        "colorNeutralBackground1Hover": "#d4d0c8",
+        "colorNeutralBackground1Selected": "#d4d0c8",
+        "colorNeutralBackground1Pressed": "#b8b4ac",
+        "colorNeutralForeground1": "#000000",
+        "colorNeutralForeground2": "#404040",
+        "colorNeutralStroke1": "#808080",
+        "colorNeutralStroke2": "#dfdfdf",
+        "colorBrandBackground": "#000080",
+        "colorBrandBackgroundHover": "#0000a8",
+        "colorBrandForeground1": "#000080"
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "format": 1,
+  "id": "catppuccin",
+  "name": "Catppuccin",
+  "version": "0.5.0",
+  "author": "Workstation",
+  "description": "Catppuccin 官方柔和粉彩配色，四种口味",
+  "shell": "sidebar",
+  "material": "none",
+  "sharedCss": "shared.css",
+  "variants": [
+    {
+      "id": "latte",
+      "name": "Latte",
+      "dark": false,
+      "accent": "#8839ef",
+      "css": "latte.css",
+      "fluent": {
+        "colorNeutralBackground1": "#eff1f5",
+        "colorNeutralBackground1Hover": "#ccd0da",
+        "colorNeutralBackground1Selected": "#ccd0da",
+        "colorNeutralBackground1Pressed": "#bcc0cc",
+        "colorNeutralBackground2": "#e6e9ef",
+        "colorNeutralBackground3": "#dce0e8",
+        "colorNeutralForeground1": "#4c4f69",
+        "colorNeutralForeground2": "#6c6f85",
+        "colorNeutralForeground3": "#6c6f85",
+        "colorNeutralStroke1": "#bcc0cc",
+        "colorNeutralStroke2": "#ccd0da",
+        "colorBrandForeground1": "#8839ef",
+        "colorBrandForegroundLink": "#8839ef",
+        "colorBrandForegroundLinkHover": "#8839ef"
+      }
+    },
+    {
+      "id": "frappe",
+      "name": "Frappé",
+      "dark": true,
+      "accent": "#ca9ee6",
+      "css": "frappe.css",
+      "fluent": {
+        "colorNeutralBackground1": "#303446",
+        "colorNeutralBackground1Hover": "#414559",
+        "colorNeutralBackground1Selected": "#414559",
+        "colorNeutralBackground1Pressed": "#51576d",
+        "colorNeutralBackground2": "#292c3c",
+        "colorNeutralBackground3": "#232634",
+        "colorNeutralForeground1": "#c6d0f5",
+        "colorNeutralForeground2": "#a5adce",
+        "colorNeutralForeground3": "#a5adce",
+        "colorNeutralStroke1": "#51576d",
+        "colorNeutralStroke2": "#414559",
+        "colorBrandForeground1": "#ca9ee6",
+        "colorBrandForegroundLink": "#ca9ee6",
+        "colorBrandForegroundLinkHover": "#ca9ee6"
+      }
+    },
+    {
+      "id": "macchiato",
+      "name": "Macchiato",
+      "dark": true,
+      "accent": "#c6a0f6",
+      "css": "macchiato.css",
+      "fluent": {
+        "colorNeutralBackground1": "#24273a",
+        "colorNeutralBackground1Hover": "#363a4f",
+        "colorNeutralBackground1Selected": "#363a4f",
+        "colorNeutralBackground1Pressed": "#494d64",
+        "colorNeutralBackground2": "#1e2030",
+        "colorNeutralBackground3": "#181926",
+        "colorNeutralForeground1": "#cad3f5",
+        "colorNeutralForeground2": "#a5adcb",
+        "colorNeutralForeground3": "#a5adcb",
+        "colorNeutralStroke1": "#494d64",
+        "colorNeutralStroke2": "#363a4f",
+        "colorBrandForeground1": "#c6a0f6",
+        "colorBrandForegroundLink": "#c6a0f6",
+        "colorBrandForegroundLinkHover": "#c6a0f6"
+      }
+    },
+    {
+      "id": "mocha",
+      "name": "Mocha",
+      "dark": true,
+      "accent": "#cba6f7",
+      "css": "mocha.css",
+      "fluent": {
+        "colorNeutralBackground1": "#1e1e2e",
+        "colorNeutralBackground1Hover": "#313244",
+        "colorNeutralBackground1Selected": "#313244",
+        "colorNeutralBackground1Pressed": "#45475a",
+        "colorNeutralBackground2": "#181825",
+        "colorNeutralBackground3": "#11111b",
+        "colorNeutralForeground1": "#cdd6f4",
+        "colorNeutralForeground2": "#a6adc8",
+        "colorNeutralForeground3": "#a6adc8",
+        "colorNeutralStroke1": "#45475a",
+        "colorNeutralStroke2": "#313244",
+        "colorBrandForeground1": "#cba6f7",
+        "colorBrandForegroundLink": "#cba6f7",
+        "colorBrandForegroundLinkHover": "#cba6f7"
+      }
+    }
+  ]
+}

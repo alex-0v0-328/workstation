@@ -1,0 +1,17 @@
+.theme-catppuccin.variant-mocha {
+  --accent: #cba6f7;
+  --accent-soft: #89b4fa;
+  --bg: #1e1e2e;
+  --sidebar: #181825;
+  --surface: #11111b;
+  --input: #313244;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --border: #45475a;
+  --strong-border: #6c7086;
+  --hover: #313244;
+  --tint: #cba6f726;
+  --warning: #f9e2af;
+  --red: #f38ba8;
+  color-scheme: dark;
+}

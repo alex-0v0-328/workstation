@@ -1,0 +1,17 @@
+.theme-catppuccin.variant-latte {
+  --accent: #8839ef;
+  --accent-soft: #1e66f5;
+  --bg: #eff1f5;
+  --sidebar: #e6e9ef;
+  --surface: #ffffff;
+  --input: #eff1f5;
+  --text: #4c4f69;
+  --muted: #6c6f85;
+  --border: #ccd0da;
+  --strong-border: #9ca0b0;
+  --hover: #e6e9ef;
+  --tint: #8839ef22;
+  --warning: #df8e1d;
+  --red: #d20f39;
+  color-scheme: light;
+}
