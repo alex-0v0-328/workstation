@@ -62,6 +62,30 @@
 
 字体层级优先于字号：标题使用 `font-weight: 600`，数据指标使用 `font-weight: 500`，正文保持常规。字族通过 `--font` 变量覆盖，默认使用 `Segoe UI Variable Text`、`Segoe UI`、`Microsoft YaHei`。
 
+## 排版布局 Token（主题包 `layout` 字段）
+
+0.6.0 起，主题包可在主题级与变体级声明可选的 `layout` 字段，调整布局几何与密度。每个键映射一个 CSS 变量，由 `themes/registry.tsx` 以 `.theme-<id>` / `.theme-<id>.variant-<vid>` 作用域注入。
+
+| Token | CSS 变量 | 默认回退 | 用途 |
+|-------|----------|----------|------|
+| `sidebarWidth` | `--sidebar-width` | `236px`（内置侧栏）/ `256px`（shell-sidebar） | 侧栏宽度 |
+| `sidebarRadius` | `--sidebar-radius` | `8px` | 悬浮侧栏外圆角 |
+| `topbarHeight` | `--topbar-height` | `54px` | 顶栏高度 |
+| `contentMaxWidth` | `--content-max-width` | `1680px`（taskbar 壳 `1500px`） | 主内容最大宽度 |
+| `panelWidth` | `--panel-width` | `228px` | TODO 页右侧栏宽度 |
+| `mailPaneWidth` | `--mail-pane-width` | `340px` | 邮件列表栏宽度 |
+| `fontSizeBase` | `--font-size-base` | `14px` | 根字号 |
+| `lineHeightBase` | `--line-height-base` | `1.5` | 根行高 |
+| `spaceUnit` | `--space-unit` | `4px` | 密度基数：主内容内边距、工作区分栏与设置网格间距以其倍数表达 |
+| `radiusSm` / `radius` / `radiusLg` | `--radius-sm` / `--radius` / `--radius-lg` | `6px` / `9px` / `12px` | 圆角体系 |
+
+规则：
+
+- 值必须是 CSS 长度（`px`/`rem`/`em`/`%`）或纯数字（用于行高等），最长 20 字符；未知键或非法值会被 `validateThemePackage` 与 `scripts/build-themes.cjs` 拒绝。
+- 几何默认值只写在各使用处的 `var()` 回退里，不集中在 `.root-theme` 声明；主题包未声明 `layout` 时渲染与之前逐像素一致（向后兼容）。
+- 1200px / 1000px 断点下的派生尺寸为固定值，不随 token 变化；`layout` 只影响基础（宽屏）布局。
+- 变体级 `layout` 在主题级之后注入，可对单个变体微调（例如暗色变体更大密度）。
+
 ## 壳（Shell）布局契约
 
 主题包声明 `shell: sidebar | taskbar`，渲染层从 `src/renderer/src/themes/registry.tsx` 的 `shells` 注册表中取出对应组件。

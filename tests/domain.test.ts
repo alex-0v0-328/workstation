@@ -18,6 +18,13 @@ describe('settings schema', () => {
     state.settings.theme = 'Neon!'
     expect(() => validateWorkspace(state)).toThrow()
   })
+  it('defaults closeToTray to true for legacy workspaces and ships deepseek-flash as the default model', () => {
+    const legacy = JSON.parse(JSON.stringify(emptyWorkspace()))
+    delete legacy.settings.closeToTray
+    expect(validateWorkspace(legacy).settings.closeToTray).toBe(true)
+    expect(emptyWorkspace().settings.closeToTray).toBe(true)
+    expect(emptyWorkspace().settings.model).toBe('deepseek-flash')
+  })
 })
 
 describe('theme packages', () => {

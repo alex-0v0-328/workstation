@@ -61,12 +61,34 @@ Hidden packaged-EXE screenshots time out on this host after fonts load. Full int
 - Installer hashes: EXE 121,570,536 bytes SHA-256 `775F6C424B4D9FE5F0D5BD68EDD35C3372F844B73F8DB24967FAE03870EA909F`; MSI 136,036,352 bytes SHA-256 `91ADF55AF971E7A1FBA03396F88EA95D62EAB1B367B0DB8C502288C0781B6372`.
 - Remaining manual checks for this release: installed-app visual acceptance of Mica transparency and the floating sidebar on the real desktop (the smoke forces material off), one-click example theme install in the installed app, the retro start-menu/clock interaction, and material fallback on systems without Windows 11 22H2+.
 
+## Verified on 2026-09-19 (0.6.0)
+
+- `npm.cmd test`: 42 tests passed across eight suites, including the new layout-token validation cases (accept declared tokens, reject unknown keys and bad values) and validation messages asserted as i18n keys.
+- `npm.cmd run build`: TypeScript, theme-package build, and all three production bundles passed.
+- `npm.cmd run smoke`: passed (`SMOKE_OK`, `PERSISTENCE_OK`, `THEMES_OK`, `BACKUP_RESTORE_OK`, `LANGUAGE_OK`). New coverage: profile v2 export asserts `version: 2`, a themes array carrying the installed packs, and no `apiKey`; legacy v1 workspace files restore through the same dialog path; the invalid `{version: 99}` file is still rejected without touching data; the language step switches zh-CN → en-US, asserts the English heading and `<html lang="en-US">`, then returns to zh-CN before the zh-selector steps.
+- Trilingual screenshot review through the Electron development launcher (zh-CN / zh-TW / en-US × light/dark × todo, study, calendar, life, settings): no overflow or broken wrapping; English singular forms are handled by `_one` dictionary variants, and the long digest badge was shortened.
+- `npm.cmd run package`: NSIS EXE + MSI produced and signed with the self-signed dev certificate (uninstaller signed); artifacts archived under `release/0.6.0/`. `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`).
+- Installer hashes: EXE 121,602,472 bytes SHA-256 `FAEE3BC2A24BCF36A8C5775E13A19003C1464221CB4865A0865BFD55CF672F85`; MSI 136,060,928 bytes SHA-256 `A11608EF2A33867EB6F5459E11C8BB17DEE9A29E130FB389428BEE8A25BE8749`.
+- Fixed during this round and covered above: controlled settings selects (language, appearance mode) silently reverting because the async save read the DOM value after React reset it; tray menu now rebuilds on language change.
+- Remaining manual checks for this release: installed-app trilingual UI acceptance, importing a profile with theme packs on a second machine, installed-app Mica visual acceptance (unchanged from 0.5.0), and the live provider checks listed below.
+
+## Verified on 2026-09-20 (0.7.0)
+
+- `npm.cmd test`: 48 tests passed across eight suites. New/changed coverage: app-password normalization (spaces stripped, lowercased account), account-switch guard until disconnect, missing-credential and invalid-UID errors, IMAP-backed digest tests against an injected fake IMAP layer, raw-MIME parsing via mailparser (multipart, attachment size, unread flag), `closeToTray` schema default for legacy workspaces, `deepseek-flash` as the default model, and the redefined digest windows (`digestWindow`: manual = today 00:00→now; auto = yesterday's digest time → today's; repeated manual runs re-cover the full window without extra model calls).
+- `npm.cmd run build`: TypeScript, theme-package build, and all three production bundles passed.
+- `npm.cmd run smoke`: passed (`SMOKE_OK`, `PERSISTENCE_OK`, `THEMES_OK`, `BACKUP_RESTORE_OK`, `LANGUAGE_OK`). Coverage: the 有DDL/无DDL category tabs with per-category creation (无DDL name-only task with empty `due`; 有DDL full editor), academic-tag rendering, theme selection through the dropdown including the Catppuccin→Mocha default variant assertion, and dialog accessibility after both creation panels.
+- Font picker verified with a Playwright computed-style probe against the built app: after setting `settings.font = 'pingfang'`, the provider element's computed `font-family` starts with `"PingFang SC"` (the fix injects the stack as Fluent `fontFamilyBase`; the earlier `--font` variable approach was overridden by Fluent's runtime-injected classes).
+- Real provider check (kept out of automation): the user's DeepSeek API key was exercised once against the live API with model `deepseek-flash` and returned HTTP 200. The user's Gmail IMAP connection succeeded in the installed app after the local antivirus TLS interception (Kaspersky mail shield) was stopped — the "self signed certificate in certificate chain" error was a local MITM, not an app defect. No credential strings appear in tracked files (`git grep` for the key and both app-password tokens is empty); secrets persist only via safeStorage into `%APPDATA%\Workstation\secrets.bin`.
+- `npm.cmd run package`: NSIS EXE + MSI produced and signed with the self-signed dev certificate (uninstaller signed); `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`); artifacts archived under `release/0.7.0/`.
+- Installer hashes: EXE 122,499,256 bytes SHA-256 `7D27AB4798A7F03757767D7FD414AD0F2C9DA467AA3B20F08FC2ADA967F6310C`; MSI 137,052,160 bytes SHA-256 `DDFD3FDAA4C717FE2D923497BAA5CA4155F542B4C08961BFC9E8C3014143ED7C`.
+- Remaining manual checks for this release: daily auto digest at the set time against the real mailbox, manual digest covering today-since-00:00, closeToTray-off quit behavior and the login-item toggle on the installed build, PingFang/SF Pro/CaskaydiaCove rendering on the user's machine (fonts must be installed locally to take effect), and installed-app Mica/trilingual acceptance carried over from 0.6.0.
+
 ## Requires user-owned configuration or manual installed-app verification
 
-- Google OAuth browser flow, consent policy, refresh after expiry, revoke/reconnect.
+- Gmail IMAP login with the user's app password, inbox listing, translate, and the daily digest against the real mailbox.
 - DeepSeek actual response quality, account quota and selected model.
 - A real school ICS subscription including its particular time zone definitions and changes.
-- Installed Windows notification delivery, focus settings, login launch, sleep/resume and uninstall preservation.
+- Installed Windows notification delivery, focus settings, login launch, close-to-tray toggle behavior, sleep/resume and uninstall preservation.
 - Credentials encrypted on the user's Windows account and actual cross-computer backup workflow.
 
 No provider credentials or user-owned academic/mail data are present in automated fixtures.

@@ -2,29 +2,24 @@
 
 ## Gmail
 
-1. 在 Google Cloud 创建或选择自己的项目，并启用 Gmail API。
-2. 配置 OAuth 同意屏幕。个人测试时将自己加入测试用户。
-3. 创建 OAuth 客户端，应用类型选择 **Desktop app**，记录客户端 ID 和客户端密钥。
-4. 在 Workstation“设置 → Gmail 连接”填写这两项并保存。
-5. 点击“在浏览器中授权”，选择 Gmail 账号并允许只读邮件访问。完成后返回应用。
+只需一组应用专用密码，不需要 Google Cloud 项目。
 
-授权使用系统浏览器、PKCE 和临时本机回调端口。只申请 `https://www.googleapis.com/auth/gmail.readonly`；不修改邮件已读状态、星标、归档或内容。
+1. 在 Google 账号开启两步验证：myaccount.google.com → 安全性 → 两步验证。
+2. 打开应用专用密码页面 https://myaccount.google.com/apppasswords ，创建一个应用（名称随意，例如 workstation），得到 16 位应用专用密码。
+3. 在 Workstation“设置 → Gmail 连接”填写 Gmail 地址和应用专用密码（4×4 分组的空格可忽略）并保存，点击“测试并连接”。
 
-Google 的测试模式、组织策略及授权状态可能要求重新授权。若 Google 拒绝连接，先核对 Gmail API 是否启用、客户端是否为 Desktop app、当前账号是否为测试用户。不要将 OAuth JSON 或密钥提交到 GitHub。
+连接走 IMAP（imap.gmail.com:993，TLS），只读取收件箱；读取邮件使用 PEEK 模式，不改变已读状态、星标、归档或内容。凭据用系统 safeStorage 加密后只保存在本机 `secrets.bin`，不会进入用户档案导出，也不要提交到 GitHub。应用专用密码可随时在上述 Google 页面撤销；撤销后在应用内断开并重新保存即可。
 
-官方参考：
-
-- [Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)
-- [Gmail API scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
+官方参考：[Google 应用专用密码](https://myaccount.google.com/apppasswords)
 
 ## DeepSeek
 
 1. 在 DeepSeek 控制台创建 API key，并确认可用额度。
 2. 在“设置 → DeepSeek 助手”保存 key，点击“测试连接”。
-3. 默认模型名为 `deepseek-chat`；可按你的账号支持的模型修改。
+3. 默认模型名为 `deepseek-flash`；可按你的账号支持的模型修改（如 `deepseek-v4-pro`）。
 4. 连接 Gmail 后，阅读启用说明并勾选每日总结，设置执行时间（默认应用时区 20:00）。
 
-API 请求固定发送到 `https://api.deepseek.com/chat/completions`。Key 只在主进程使用，界面只获得“已保存”状态。首次总结从启用时开始，不扫描全部历史邮件。摘要覆盖新增且仍在收件箱中的邮件，包括已读；单封翻译按按钮触发。正文发送到 DeepSeek，附件不发送。
+API 请求固定发送到 `https://api.deepseek.com/chat/completions`。Key 只在主进程使用，界面只获得“已保存”状态。自动总结在每天设定时间覆盖过去 24 小时（昨日设定时间到今日设定时间）的收件箱邮件；手动触发则总结今天 00:00 至今的邮件，均包括已读。单封翻译按按钮触发。正文发送到 DeepSeek，附件不发送。
 
 网络失败、额度不足或部分邮件失败时，成功片段保存在本机。重新生成会继续失败部分。邮件总结内容仅供辅助阅读，不自动创建任务或执行邮件内容里的要求。
 

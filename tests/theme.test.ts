@@ -47,4 +47,12 @@ describe('theme packages', () => {
       }
     }
   })
+
+  it('accepts declared layout tokens and rejects unknown keys or bad values', () => {
+    const base = distManifests()[0].manifest
+    const good = validateThemePackage({ ...base, layout: { sidebarWidth: '300px', spaceUnit: '6px', lineHeightBase: '1.6' }, variants: base.variants.map(v => ({ ...v, layout: { fontSizeBase: '15px' } })) })
+    expect(good.layout).toMatchObject({ sidebarWidth: '300px' })
+    expect(() => validateThemePackage({ ...base, layout: { sidebarWiddth: '300px' } })).toThrow('validation.themeLayoutKey')
+    expect(() => validateThemePackage({ ...base, layout: { radius: 'solid 1px' } })).toThrow()
+  })
 })

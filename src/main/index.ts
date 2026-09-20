@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, Notification, powerMonitor, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Notification, powerMonitor } from 'electron'
 import { join } from 'node:path'
 import { readFile, writeFile, stat, mkdir } from 'node:fs/promises'
 import { DateTime } from 'luxon'
@@ -6,21 +6,28 @@ import { z } from 'zod'
 import { Store } from './store'
 import { Providers } from './providers'
 import { createThemeService, type ThemeService } from './themes'
-import { aggregateTodos, reminderCandidates, validateWorkspace, workspaceSchema, dueDigestSlot } from '../shared/domain'
+import { createAppWindow } from './window'
+import { createTray } from './tray'
+import { createScheduler } from './scheduler'
+import { validateWorkspace, workspaceSchema } from '../shared/domain'
 import { parseCalendar, mergeCalendarMappings } from '../shared/calendar'
-import type { Workspace, CalendarSource } from '../shared/types'
+import { validateThemePackage } from '../shared/theme-manifest'
+import { localizeError, MessageError } from '../shared/i18n'
+import { mainT, mt, setMainLanguage } from './i18n'
+import type { Workspace } from '../shared/types'
 
 if (process.env.WORKSTATION_TEST_DATA) app.setPath('userData', process.env.WORKSTATION_TEST_DATA)
 app.setAppUserModelId('io.github.alex0v0328.workstation')
 let window: BrowserWindow | null = null, tray: Tray | null = null, store: Store, providers: Providers, themeService: ThemeService
-let quitting = false, ticking = false, syncing = false
+let quitting = false, syncing = false
 const changed = () => window?.webContents.send('workspace:changed')
 const idSchema = z.string().min(1).max(200)
 const ipc = (channel: string, action: (value: any) => unknown) => ipcMain.handle(channel, async (event, value) => {
-  if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('不受信任的调用来源')
+  if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new MessageError('remote.untrusted')
   try { return await action(value) } catch (e) {
-    if (e instanceof z.ZodError) throw new Error(e.issues.slice(0, 4).map(i => `${i.path.join('.')}: ${i.message}`).join('\n'))
-    throw new Error(e instanceof Error ? e.message : '操作失败')
+    if (e instanceof z.ZodError) throw new Error(e.issues.slice(0, 4).map(i => `${i.path.join('.')}: ${mainT().has(i.message) ? mainT().text(i.message) : i.message}`).join('\n'))
+    if (e instanceof MessageError) throw new Error(mt(e.id, e.params))
+    throw new Error(e instanceof Error ? e.message : mt('app.opFailed'))
   }
 })
 function show() { window?.show(); window?.focus() }
@@ -33,15 +40,15 @@ async function calendarText(url: string): Promise<string> {
   let next = url.replace(/^webcal:/i, 'https:')
   for (let redirects = 0; redirects < 5; redirects++) {
     const parsed = new URL(next)
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('课表订阅需要 HTTPS 链接')
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new MessageError('remote.httpsRequired')
     const response = await fetch(next, { signal: AbortSignal.timeout(30000), redirect: 'manual' })
     if (response.status >= 300 && response.status < 400 && response.headers.get('location')) { next = new URL(response.headers.get('location')!, next).href; continue }
-    if (!response.ok) throw new Error(`课表下载失败（${response.status}）`)
+    if (!response.ok) throw new MessageError('remote.downloadFailed', { status: response.status })
     const reader = response.body!.getReader(); const parts: Uint8Array[] = []; let size = 0
-    while (true) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > 5_000_000) { await reader.cancel(); throw new Error('课表超过 5 MB') }; parts.push(value) }
+    while (true) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > 5_000_000) { await reader.cancel(); throw new MessageError('remote.icsTooBig') }; parts.push(value) }
     return Buffer.concat(parts).toString('utf8')
   }
-  throw new Error('课表链接重定向过多')
+  throw new MessageError('remote.redirects')
 }
 async function syncCalendars(): Promise<Workspace> {
   if (syncing) return store.load()
@@ -54,22 +61,22 @@ async function syncCalendars(): Promise<Workspace> {
         const source = current.sources.find(x => x.id === original.id && x.url === original.url)
         if (!source) continue
         const semester = current.semesters.find(s => s.id === source.semesterId)!
-        const result = parseCalendar(text, source.id, semester.start, semester.end, semester.timezone)
+        const result = parseCalendar(text, source.id, semester.start, semester.end, semester.timezone, { untitled: mt('remote.untitled') })
         const previous = current.events.filter(e => e.sourceId === source.id)
         current.events = [...current.events.filter(e => e.sourceId !== source.id), ...mergeCalendarMappings(previous, result.events)]
         source.lastSync = new Date().toISOString(); source.error = ''; store.save(current)
       } catch (e) {
         const current = store.load(); const source = current.sources.find(s => s.id === original.id)
-        if (source) { source.error = e instanceof Error ? e.message : '同步失败'; store.save(current) }
+        if (source) { source.error = e instanceof Error ? e.message : 'remote.syncFailed'; store.save(current) }
       }
     }
     changed(); return store.load()
   } finally { syncing = false }
 }
 async function readJsonFile(): Promise<unknown | null> {
-  const result = await dialog.showOpenDialog(window!, { properties: ['openFile'], filters: [{ name: 'Workstation JSON', extensions: ['json'] }] })
+  const result = await dialog.showOpenDialog(window!, { properties: ['openFile'], filters: [{ name: mt('remote.jsonFilter'), extensions: ['json'] }] })
   if (result.canceled) return null
-  if ((await stat(result.filePaths[0])).size > 20_000_000) throw new Error('文件超过 20 MB')
+  if ((await stat(result.filePaths[0])).size > 20_000_000) throw new MessageError('remote.fileTooBig')
   return JSON.parse(await readFile(result.filePaths[0], 'utf8'))
 }
 function registerIpc() {
@@ -77,37 +84,51 @@ function registerIpc() {
   ipc('workspace:save', value => {
     const next = validateWorkspace(value), previous = store.load()
     if (next.settings.digestEnabled && !previous.settings.digestEnabled) {
-      if (!providers.status().hasKey || !providers.status().email) throw new Error('启用自动总结前请连接 Gmail 并配置 DeepSeek')
+      if (!providers.status().hasKey || !providers.status().email) throw new MessageError('remote.digestNeedsSetup')
       next.settings.digestSince = previous.settings.digestSince || new Date().toISOString()
     }
     const saved = store.save(next)
     if (previous.settings.startAtLogin !== saved.settings.startAtLogin && app.isPackaged) app.setLoginItemSettings({ openAtLogin: saved.settings.startAtLogin, args: ['--hidden'] })
     if (previous.settings.theme !== saved.settings.theme || previous.settings.variant !== saved.settings.variant) themeService.applyMaterial()
+    if (previous.settings.language !== saved.settings.language) { setMainLanguage(saved.settings.language); rebuildTray() }
     changed(); return saved
   })
   ipc('backup:export', async () => {
-    const result = await dialog.showSaveDialog(window!, { defaultPath: `workstation-${DateTime.now().toISODate()}.json`, filters: [{ name: 'Workstation backup', extensions: ['json'] }] })
+    const result = await dialog.showSaveDialog(window!, { defaultPath: `workstation-${DateTime.now().toISODate()}.json`, filters: [{ name: mt('remote.backupFilter'), extensions: ['json'] }] })
     if (result.canceled || !result.filePath) return null
-    const backup = store.load(); backup.settings.digestSince = ''; backup.settings.digestEnabled = false; backup.settings.startAtLogin = false
-    await writeFile(result.filePath, JSON.stringify(backup, null, 2)); return result.filePath
+    const workspace = store.load(); workspace.settings.digestSince = ''; workspace.settings.digestEnabled = false; workspace.settings.startAtLogin = false
+    const profile = { version: 2, exportedAt: new Date().toISOString(), workspace, themes: await themeService.installed() }
+    await writeFile(result.filePath, JSON.stringify(profile, null, 2)); return result.filePath
   })
   ipc('backup:restore', async () => {
-    if (providers.isBusy()) throw new Error('请等待邮件授权或总结结束后恢复备份')
+    if (providers.isBusy()) throw new MessageError('remote.restoreBusyAuth')
     const input = await readJsonFile(); if (input === null) return null
-    const value = validateWorkspace(input)
-    const result = await dialog.showMessageBox(window!, { type: 'warning', buttons: ['取消', '恢复备份'], defaultId: 0, cancelId: 0, message: `将恢复 ${value.semesters.length} 个学期、${value.courses.length} 门课程和 ${value.tasks.length + value.assessments.length} 个事项。`, detail: '当前数据将自动保存到本机恢复前备份。此操作替换当前学业与 TODO 数据。账号凭据不受影响。' })
+    const envelope = input as { version?: unknown; workspace?: unknown; themes?: unknown }
+    const value = validateWorkspace(envelope.version === 2 && envelope.workspace ? envelope.workspace : input)
+    const themeInputs = envelope.version === 2 && Array.isArray(envelope.themes) ? envelope.themes : []
+    const validThemes: unknown[] = [], skippedThemes: string[] = []
+    for (const theme of themeInputs) {
+      try { validateThemePackage(theme); validThemes.push(theme) }
+      catch { skippedThemes.push(theme && typeof theme === 'object' && 'id' in theme ? String((theme as { id: unknown }).id) : '?') }
+    }
+    let detail = mt('remote.restoreDetail')
+    if (validThemes.length) detail += ' ' + mt('remote.restoreConfirmThemes', { count: validThemes.length })
+    if (skippedThemes.length) detail += ' ' + mt('remote.themeInvalidInProfile', { id: skippedThemes.join(', ') })
+    const result = await dialog.showMessageBox(window!, { type: 'warning', buttons: [mt('common.cancel'), mt('remote.restoreButton')], defaultId: 0, cancelId: 0, message: mt('remote.restoreConfirm', { semesters: value.semesters.length, courses: value.courses.length, tasks: value.tasks.length + value.assessments.length }), detail })
     if (result.response !== 1) return null
-    if (providers.isBusy()) throw new Error('邮件任务正在运行，请稍后恢复备份')
+    if (providers.isBusy()) throw new MessageError('remote.restoreBusy')
     await writeFile(join(app.getPath('userData'), `before-restore-${Date.now()}.json`), JSON.stringify(store.load(), null, 2))
+    for (const theme of validThemes) await themeService.installManifest(theme)
     value.settings.digestEnabled = false; value.settings.digestSince = ''; value.settings.startAtLogin = false
     const saved = store.save(value, true); store.clearPrefix('reminder:'); store.clearPrefix('digest:')
     if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: false })
+    setMainLanguage(saved.settings.language); rebuildTray()
     changed(); return saved
   })
   ipc('academic:import', async () => {
     const input = await readJsonFile(); if (input === null) return null
     const value = validateWorkspace(input)
-    const result = await dialog.showMessageBox(window!, { buttons: ['取消', '导入为新学期'], defaultId: 0, cancelId: 0, message: `预览：${value.semesters.map(s => s.name).join('、') || '无学期'}`, detail: `${value.courses.length} 门课程、${value.assessments.length} 个考核、${value.events.length} 个课表安排。保留当前数据，导入学业内容；不导入手动 TODO、账号或设置。` })
+    const result = await dialog.showMessageBox(window!, { buttons: [mt('common.cancel'), mt('remote.importButton')], defaultId: 0, cancelId: 0, message: mt('remote.importPreview', { names: value.semesters.map(s => s.name).join('、') || mt('remote.noSemesters') }), detail: mt('remote.importDetail', { courses: value.courses.length, assessments: value.assessments.length, events: value.events.length }) })
     if (result.response !== 1) return null
     const current = store.load()
     const prefix = crypto.randomUUID() + ':'
@@ -122,16 +143,16 @@ function registerIpc() {
   ipc('calendar:preview', async input => {
     const value = z.object({ url: z.string().max(4000).optional(), semesterId: idSchema, sourceId: idSchema, semester: workspaceSchema.shape.semesters.element.optional() }).parse(input)
     const semester = value.semester || store.load().semesters.find(s => s.id === value.semesterId)
-    if (!semester) throw new Error('请先选择学期')
+    if (!semester) throw new MessageError('remote.pickSemester')
     let text: string
     if (value.url) text = await calendarText(value.url)
     else {
       const result = await dialog.showOpenDialog(window!, { properties: ['openFile'], filters: [{ name: 'iCalendar', extensions: ['ics'] }] })
       if (result.canceled) return null
-      if ((await stat(result.filePaths[0])).size > 5_000_000) throw new Error('课表超过 5 MB')
+      if ((await stat(result.filePaths[0])).size > 5_000_000) throw new MessageError('remote.icsTooBig')
       text = await readFile(result.filePaths[0], 'utf8')
     }
-    return parseCalendar(text, value.sourceId, semester.start, semester.end, semester.timezone)
+    return parseCalendar(text, value.sourceId, semester.start, semester.end, semester.timezone, { untitled: mt('remote.untitled') })
   })
   ipc('calendar:sync', syncCalendars)
   ipc('connection:get', () => providers.status())
@@ -143,10 +164,10 @@ function registerIpc() {
   ipc('mail:translate', input => providers.translate(idSchema.parse(input)))
   ipc('ai:test', () => providers.testAI())
   ipc('digest:list', () => providers.digests())
-  ipc('digest:run', () => providers.summarize())
+  ipc('digest:run', input => providers.summarize(z.enum(['manual', 'auto']).optional().parse(input) ?? 'manual'))
   ipc('external:open', async input => {
     const url = new URL(z.string().max(10000).parse(input))
-    if (!['https:', 'http:', 'mailto:'].includes(url.protocol) || url.username || url.password) throw new Error('不支持的链接')
+    if (!['https:', 'http:', 'mailto:'].includes(url.protocol) || url.username || url.password) throw new MessageError('remote.unsupportedLink')
     await shell.openExternal(url.toString())
   })
   ipc('themes:list', () => themeService.list())
@@ -154,60 +175,9 @@ function registerIpc() {
   ipc('themes:install-example', input => themeService.installExample(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
   ipc('themes:remove', input => themeService.remove(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
 }
-async function tick() {
-  if (ticking) return
-  ticking = true
-  try {
-    try { providers.pruneCaches() } catch (e) { providers.lastError = e instanceof Error ? e.message : '缓存清理失败' }
-    const state = store.load(), now = DateTime.now().setZone(state.settings.timezone)
-    if (state.settings.notifications) {
-      const sent = store.get<Record<string, boolean>>('reminder:sent', {})
-      const reminders = reminderCandidates(aggregateTodos(state), now.toJSDate(), state.settings.timezone, sent)
-      if (reminders.length && Notification.isSupported()) {
-        notify('待办提醒', reminders.slice(0, 4).map(r => r.item.title).join('、') + (reminders.length > 4 ? ` 等 ${reminders.length} 项` : ''))
-        for (const r of reminders) for (const key of r.keys) sent[key] = true
-        store.set('reminder:sent', sent)
-      }
-    }
-    if (Date.now() - store.get<number>('calendar:checked', 0) > 3600000) { await syncCalendars(); store.set('calendar:checked', Date.now()) }
-    const lastDate = store.get<string>('digest:lastDate', '')
-    const slot = dueDigestSlot(now, state.settings.digestTime, state.settings.digestSince, lastDate)
-    if (state.settings.digestEnabled && slot && Date.now() - store.get<number>('digest:lastAttempt', 0) > 900000) {
-      store.set('digest:lastAttempt', Date.now())
-      const digest = await providers.summarize()
-      if (digest.state === 'done') {
-        const completedSlot = dueDigestSlot(DateTime.fromISO(digest.until).setZone(state.settings.timezone), state.settings.digestTime, state.settings.digestSince, '')
-        if (completedSlot && completedSlot > lastDate) store.set('digest:lastDate', completedSlot)
-      }
-      if (state.settings.notifications) notify(digest.state === 'done' ? '每日邮件总结已完成' : '邮件总结需要重试', `${digest.entries.length} 封邮件，可在生活板块查看。`)
-    }
-  } catch (e) { providers.lastError = e instanceof Error ? e.message : '后台任务失败'; changed() }
-  finally { ticking = false }
-}
-function backgroundColor(): string {
-  const appearance = store.load().settings.appearance
-  const dark = appearance === 'system' ? nativeTheme.shouldUseDarkColors : appearance === 'dark'
-  return dark ? '#1b1c1f' : '#f3f3f3'
-}
-function createWindow() {
-  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 960, minHeight: 640, title: 'Workstation', icon: join(__dirname, '../../resources/icon.png'), backgroundColor: backgroundColor(), autoHideMenuBar: true, show: false, webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: true, contextIsolation: true, nodeIntegration: false } })
-  themeService.applyMaterial()
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-  window.webContents.on('will-navigate', event => event.preventDefault())
-  window.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
-  window.on('close', event => { if (!quitting) { event.preventDefault(); window?.hide() } })
-  window.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) show() })
-  if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) window.loadURL(process.env.ELECTRON_RENDERER_URL)
-  else window.loadFile(join(__dirname, '../renderer/index.html'))
-  const bytes = Buffer.alloc(32 * 32 * 4)
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-    const i = (y * 32 + x) * 4, line = (x >= 8 && x <= 11 && y >= 8 && y <= 24) || (x >= 14 && x <= 17 && y >= 15 && y <= 24) || (x >= 20 && x <= 23 && y >= 8 && y <= 24)
-    bytes[i] = line ? 255 : 190; bytes[i + 1] = line ? 255 : 92; bytes[i + 2] = line ? 255 : 15; bytes[i + 3] = 255
-  }
-  tray = new Tray(nativeImage.createFromBitmap(bytes, { width: 32, height: 32 }))
-  tray.setToolTip('Workstation · 个人工作台')
-  tray.setContextMenu(Menu.buildFromTemplate([{ label: '打开工作台', click: show }, { label: '立即同步课表', click: () => { void syncCalendars() } }, { type: 'separator' }, { label: '退出', click: () => { quitting = true; app.quit() } }]))
-  tray.on('double-click', show)
+function rebuildTray() {
+  tray?.destroy()
+  tray = createTray({ show, sync: () => { void syncCalendars() }, quit: () => { quitting = true; app.quit() } })
 }
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
@@ -216,15 +186,20 @@ else {
     try {
       await mkdir(app.getPath('userData'), { recursive: true })
       store = new Store(join(app.getPath('userData'), 'workspace.db'))
+      setMainLanguage(store.load().settings.language)
+      if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: store.load().settings.startAtLogin, args: ['--hidden'] })
       providers = new Providers(store, join(app.getPath('userData'), 'secrets.bin'), changed)
       themeService = createThemeService({ store, getWindow: () => window, changed })
-      registerIpc(); createWindow()
+      registerIpc()
+      window = createAppWindow({ store, themeService, isQuitting: () => quitting })
+      rebuildTray()
       if (!process.env.WORKSTATION_TEST_DATA) {
+        const tick = createScheduler({ store, providers, syncCalendars, changed, notify })
         setInterval(() => { void tick() }, 60000).unref()
         powerMonitor.on('resume', () => { void tick() })
         void tick()
       }
-    } catch (e) { dialog.showErrorBox('Workstation 无法启动', e instanceof Error ? e.message : '初始化失败'); quitting = true; app.quit() }
+    } catch (e) { dialog.showErrorBox(mt('remote.startupTitle'), localizeError(e, mainT())); quitting = true; app.quit() }
   })
   app.on('before-quit', () => { quitting = true })
   app.on('will-quit', () => { store?.close(); tray?.destroy() })

@@ -4,6 +4,8 @@ import { readdir, readFile, writeFile, copyFile, unlink, mkdir, stat } from 'nod
 import { readFileSync, readdirSync } from 'node:fs'
 import { release } from 'node:os'
 import { validateThemePackage, BUILTIN_THEME, type ThemeManifest } from '../shared/theme-manifest'
+import { MessageError } from '../shared/i18n'
+import { mt } from './i18n'
 import type { ThemeState } from '../shared/types'
 import type { Store } from './store'
 
@@ -12,6 +14,8 @@ export interface ThemeService {
   applyMaterial(): void
   install(): Promise<ThemeState | null>
   installExample(id: string): Promise<ThemeState>
+  installManifest(input: unknown): Promise<void>
+  installed(): Promise<ThemeManifest[]>
   remove(id: string): Promise<ThemeState>
 }
 
@@ -101,25 +105,33 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
 
     async install(): Promise<ThemeState | null> {
       const win = deps.getWindow()
-      if (!win) throw new Error('窗口未就绪')
+      if (!win) throw new MessageError('remote.windowNotReady')
       const result = await dialog.showOpenDialog(win, {
-        filters: [{ name: 'Workstation 主题', extensions: ['json'] }],
+        filters: [{ name: mt('remote.themeFilter'), extensions: ['json'] }],
         properties: ['openFile']
       })
       if (result.canceled || result.filePaths.length === 0) return null
       const filePath = result.filePaths[0]
-      if ((await stat(filePath)).size > maxInstallBytes) throw new Error('主题包超过 2MB')
-      const manifest = validateThemePackage(JSON.parse(await readFile(filePath, 'utf8')))
-      await ensureDir()
-      await writeFile(join(themesDir, `${manifest.id}.wstheme.json`), JSON.stringify(manifest, null, 2))
+      if ((await stat(filePath)).size > maxInstallBytes) throw new MessageError('remote.themeTooBig')
+      await this.installManifest(JSON.parse(await readFile(filePath, 'utf8')))
       deps.changed()
       return this.list()
     },
 
+    async installManifest(input: unknown): Promise<void> {
+      const manifest = validateThemePackage(input)
+      await ensureDir()
+      await writeFile(join(themesDir, `${manifest.id}.wstheme.json`), JSON.stringify(manifest, null, 2))
+    },
+
+    async installed(): Promise<ThemeManifest[]> {
+      return readInstalled()
+    },
+
     async installExample(id: string): Promise<ThemeState> {
-      if (!slugRe.test(id)) throw new Error('主题 ID 不合法')
+      if (!slugRe.test(id)) throw new MessageError('remote.themeIdInvalid')
       const source = join(resourcesDir(), `${id}.wstheme.json`)
-      try { await stat(source) } catch { throw new Error('示例主题不存在') }
+      try { await stat(source) } catch { throw new MessageError('remote.exampleMissing') }
       await ensureDir()
       await copyFile(source, join(themesDir, `${id}.wstheme.json`))
       deps.changed()
@@ -127,10 +139,10 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
     },
 
     async remove(id: string): Promise<ThemeState> {
-      if (!slugRe.test(id)) throw new Error('主题 ID 不合法')
-      if (id === BUILTIN_THEME) throw new Error('内置主题不可移除')
+      if (!slugRe.test(id)) throw new MessageError('remote.themeIdInvalid')
+      if (id === BUILTIN_THEME) throw new MessageError('remote.builtinLocked')
       const filePath = join(themesDir, `${id}.wstheme.json`)
-      try { await unlink(filePath) } catch { throw new Error('主题不存在') }
+      try { await unlink(filePath) } catch { throw new MessageError('remote.themeMissing') }
       const current = deps.store.load()
       if (current.settings.theme === id) {
         current.settings.theme = BUILTIN_THEME

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import { emptyWorkspace, validateWorkspace } from '../shared/domain'
+import { MessageError } from '../shared/i18n'
 import type { Workspace } from '../shared/types'
 
 export class Store {
@@ -8,7 +9,7 @@ export class Store {
     this.db = new Database(path)
     this.db.pragma('journal_mode = WAL')
     const version = this.db.pragma('user_version', { simple: true }) as number
-    if (version > 1) throw new Error('此数据库由较新版本创建，请升级应用')
+    if (version > 1) throw new MessageError('remote.dbNewer')
     this.db.exec('CREATE TABLE IF NOT EXISTS workspace (id INTEGER PRIMARY KEY CHECK(id=1), json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, json TEXT NOT NULL); PRAGMA user_version=1;')
     if (!this.db.prepare('SELECT 1 FROM workspace WHERE id=1').get()) this.db.prepare('INSERT INTO workspace VALUES (1, ?)').run(JSON.stringify(emptyWorkspace()))
   }
@@ -17,7 +18,7 @@ export class Store {
     const next = validateWorkspace(input)
     return this.db.transaction(() => {
       const previous = this.load()
-      if (!force && previous.revision !== next.revision) throw new Error('数据已在后台更新。请保留编辑内容，关闭编辑面板后重试。')
+      if (!force && previous.revision !== next.revision) throw new MessageError('remote.revisionConflict')
       next.revision = previous.revision + 1
       this.db.prepare('UPDATE workspace SET json=? WHERE id=1').run(JSON.stringify(next))
       return next

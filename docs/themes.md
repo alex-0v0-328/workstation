@@ -45,6 +45,7 @@ Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它�
 | `description` | ≤500 字符 | 简介，可选 |
 | `shell` | `sidebar` 或 `taskbar` | 布局壳，见 `src/renderer/src/themes/registry.tsx` |
 | `material` | `mica`、`acrylic` 或 `none`，默认 `none` | 窗口材质，见 `docs/design.md` |
+| `layout` | 可选，白名单键 → CSS 长度/数字 | 排版布局 token，见 `docs/design.md` 的排版布局 Token 表 |
 | `variants` | 1–20 项 | 每个变体即一个独立配色方案 |
 
 变体字段：
@@ -57,6 +58,7 @@ Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它�
 | `accent` | `#rrggbb` | 主题主色 |
 | `css` | 字符串，≤500KB | 主题 CSS，会被注入 `<style data-workstation-theme>` |
 | `fluent` | 可选，键名 `^color[A-Z]`、值 `#rrggbb` | 覆盖 Fluent UI 2 token |
+| `layout` | 可选，同主题级白名单 | 对单个变体微调排版，注入于主题级之后 |
 
 注意：
 
@@ -171,6 +173,8 @@ themes/dist/<id>.wstheme.json
 - 开发/测试隔离：`.local\themes\`
 
 示例主题（Catppuccin、复古 Windows）随安装包通过 `electron-builder` 的 `extraResources` 分发到 `resources/themes/`，设置页提供一键安装入口。
+
+0.6.0 起，设置页「导出用户档案」会把本目录下已安装的主题包一并写入档案 JSON；在另一台机器导入档案时主题包随数据一并恢复（逐包校验，无效包跳过并在确认框说明）。主题包的 `name`/`description`/`variant.name` 属于作者数据，不随应用界面语言翻译。
 
 ## 内置主题保护
 

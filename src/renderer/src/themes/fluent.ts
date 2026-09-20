@@ -6,7 +6,7 @@ function mix(a: string, b: string, t: number): string {
   return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('')
 }
 
-export function brandRamp(accent: string): BrandVariants {
+function brandRamp(accent: string): BrandVariants {
   const ramp = {} as Record<number, string>
   for (let stop = 10; stop <= 160; stop += 10) {
     const p = stop / 160

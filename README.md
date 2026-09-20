@@ -8,8 +8,9 @@ Windows 个人工作台，将 TODO、学习和 Gmail 阅读整合到一个本地
 - 学业考核直接出现在 TODO 中，完成进度与学习区同步，无重复任务。
 - ICS 文件 / HTTPS 订阅、周课表、单次调课与取消、手动周次安排。
 - 内置 Windows 11 原生主题（Mica 毛玻璃、悬浮侧边栏、浅色/深色/跟随系统，材质不支持时自动降级实色）；其余 `.wstheme.json` 主题包可在“设置”安装，安装包附带 Catppuccin（四口味）与复古 Windows 95/98 两个示例，主题切换不重置数据与草稿。
+- 界面语言：简体中文（默认）、繁體中文、English (US)，设置页即时切换，不影响数据与草稿。
 - Gmail 只读列表、搜索、正文和本地缓存；DeepSeek 单封翻译及每日增量总结。
-- SQLite 本地持久化、JSON 备份恢复、托盘、桌面提醒与可选开机启动。
+- SQLite 本地持久化、用户档案导出导入（含已安装主题包）、托盘、桌面提醒与可选开机启动。
 
 ## 开发
 
@@ -32,7 +33,7 @@ node scripts/packaged-check.cjs
 
 ## 数据安全与卸载
 
-应用自带卸载程序**保留**用户数据（`%APPDATA%\Workstation`）。但 Geek Uninstaller 等第三方工具的"残留清扫"会强制删除该目录——卸载或重装前请先在“设置 → 数据与备份”导出 JSON 备份。学习页的“导入学业 JSON”可以把学期包（课程、考核、hurdle、课表订阅与事件）导入回来，与界面内编辑等效，是对外数据接口。
+应用自带卸载程序**保留**用户数据（`%APPDATA%\Workstation`）。但 Geek Uninstaller 等第三方工具的"残留清扫"会强制删除该目录——卸载或重装前请先在“设置 → 用户档案”导出档案。学习页的“导入学业 JSON”可以把学期包（课程、考核、hurdle、课表订阅与事件）导入回来，与界面内编辑等效，是对外数据接口。
 
 ## 录入学业
 
@@ -45,18 +46,18 @@ node scripts/packaged-check.cjs
 
 ## Gmail 和 DeepSeek
 
-详见 [连接配置](docs/setup.md)。两个服务分别配置：Google Desktop OAuth 用于读取 Gmail，DeepSeek API key 用于翻译和总结。没有配置服务时，学习与 TODO 仍可完整离线使用。
+详见 [连接配置](docs/setup.md)。两个服务分别配置：Gmail 应用专用密码（IMAP）用于读取邮件，DeepSeek API key 用于翻译和总结。没有配置服务时，学习与 TODO 仍可完整离线使用。
 
 ## 数据
 
 正式数据存放在 Electron 的 Windows 用户应用数据目录（通常为 `%APPDATA%/workstation`）：
 
 - `workspace.db`：学业、TODO、课表、设置、邮件缓存及处理进度。
-- `secrets.bin`：通过 Windows 支持的 `safeStorage` 加密的 OAuth 凭据与 API key。
+- `secrets.bin`：通过 Windows 支持的 `safeStorage` 加密的 Gmail 应用专用密码与 API key。
 - `before-restore-*.json`：恢复备份前自动保存的当前数据副本。
-- 学期向导草稿由本机 Chromium profile 保存；不包含在 JSON 备份中。
+- 学期向导草稿由本机 Chromium profile 保存；不包含在用户档案中。
 
-JSON 备份不包含凭据、邮件和 AI 缓存，包含日历订阅链接，因此请把它当作个人数据保管。跨电脑恢复后需重新连接服务。卸载默认保留用户数据。
+用户档案（`{ version: 2, workspace, themes }`）包含课程、考核、课表、偏好与已安装主题包，不包含凭据、邮件和 AI 缓存；包含日历订阅链接，因此请把它当作个人数据保管。旧版 v1 纯工作区备份仍可导入。跨电脑恢复后需重新连接服务。卸载默认保留用户数据。
 
 ## 已知边界
 
@@ -65,6 +66,6 @@ JSON 备份不包含凭据、邮件和 AI 缓存，包含日历订阅链接，�
 - 成绩是已获总评分的基础计算；不自动解释复杂 hurdle 或推断是否通过课程。
 - 邮件 HTML 清理为安全阅读内容，不加载远程图片；完整链接、原版排版和附件在 Gmail 查看。
 - 应用退出、电脑关机或休眠时不运行任务。应用恢复后补做；系统通知最终展示由 Windows 通知权限和专注设置控制。
-- 真实 Gmail 授权、真实 DeepSeek 请求、实际学校订阅及安装后通知需要对应配置与设备验收。自动化通过不等于这些连接已经验证。
+- 真实 Gmail 连接、真实 DeepSeek 请求、实际学校订阅及安装后通知需要对应配置与设备验收。自动化通过不等于这些连接已经验证。
 
 产品规格见 [product.md](docs/product.md)，验证记录见 [acceptance.md](docs/acceptance.md)。

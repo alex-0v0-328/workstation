@@ -1,14 +1,15 @@
 import { z } from 'zod'
 import { DateTime } from 'luxon'
 import type { Workspace, TodoItem, Semester, Course, CalendarEvent, CalendarSource } from './types'
+import { MessageError } from './i18n'
 
 const text = z.string().max(100000)
 const id = z.string().min(1).max(200)
-const name = z.string().trim().min(1, '请填写名称').max(500)
-const date = z.string().refine(v => v === '' || (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/.test(v) && DateTime.fromISO(v).isValid), '日期无效')
-const day = date.refine(v => v.length === 10, '请填写日期')
-const zone = z.string().refine(v => DateTime.now().setZone(v).isValid, '时区无效')
-const url = text.refine(v => !v || /^https?:\/\//i.test(v), '链接必须以 https:// 或 http:// 开头')
+const name = z.string().trim().min(1, 'validation.name').max(500)
+const date = z.string().refine(v => v === '' || (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/.test(v) && DateTime.fromISO(v).isValid), 'validation.date')
+const day = date.refine(v => v.length === 10, 'validation.day')
+const zone = z.string().refine(v => DateTime.now().setZone(v).isValid, 'validation.zone')
+const url = text.refine(v => !v || /^https?:\/\//i.test(v), 'validation.url')
 const task = z.object({ id, title: name, status: z.enum(['todo', 'doing', 'done']), priority: z.enum(['normal', 'high', 'low']), due: date, notes: text, reminders: z.boolean(), archived: z.boolean().optional(), reminderOffsets: z.array(z.number().int().min(0).max(525600)).max(10).optional() })
 export const workspaceSchema = z.object({
   version: z.literal(1), revision: z.number().int().nonnegative(),
@@ -19,41 +20,41 @@ export const workspaceSchema = z.object({
   hurdles: z.array(z.object({ id, courseId: id, text: name, scope: z.enum(['course', 'assessment', 'group']), assessmentIds: z.array(id), status: z.enum(['pending', 'met', 'unmet']) })).max(10000),
   events: z.array(z.object({ id, sourceId: text, uid: id, courseId: text, title: name, start: date.refine(Boolean), end: date.refine(Boolean), allDay: z.boolean(), location: text })).max(50000),
   sources: z.array(z.object({ id, name, url, semesterId: id, lastSync: date, error: text })).max(100),
-  settings: z.object({ theme: z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/), variant: z.string().max(50).default(''), appearance: z.enum(['system', 'light', 'dark']), timezone: zone, startAtLogin: z.boolean(), notifications: z.boolean(), digestEnabled: z.boolean(), digestTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), digestSince: date, model: z.string().regex(/^[a-zA-Z0-9._-]{1,100}$/) })
+  settings: z.object({ theme: z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/), variant: z.string().max(50).default(''), appearance: z.enum(['system', 'light', 'dark']), language: z.enum(['zh-CN', 'zh-TW', 'en-US']).default('zh-CN'), font: z.enum(['', 'pingfang', 'sfpro', 'caskaydia']).default(''), timezone: zone, startAtLogin: z.boolean(), closeToTray: z.boolean().default(true), notifications: z.boolean(), digestEnabled: z.boolean(), digestTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), digestSince: date, model: z.string().regex(/^[a-zA-Z0-9._-]{1,100}$/) })
 })
 
 export function emptyWorkspace(): Workspace {
-  return { version: 1, revision: 0, semesters: [], courses: [], assessments: [], tasks: [], hurdles: [], events: [], sources: [], settings: { theme: 'windows', variant: '', appearance: 'system', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, startAtLogin: false, notifications: true, digestEnabled: false, digestTime: '20:00', digestSince: '', model: 'deepseek-chat' } }
+  return { version: 1, revision: 0, semesters: [], courses: [], assessments: [], tasks: [], hurdles: [], events: [], sources: [], settings: { theme: 'windows', variant: '', appearance: 'system', language: 'zh-CN', font: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, startAtLogin: false, closeToTray: true, notifications: true, digestEnabled: false, digestTime: '20:00', digestSince: '', model: 'deepseek-flash' } }
 }
 
 export function validateWorkspace(input: unknown): Workspace {
   const s = workspaceSchema.parse(input)
   for (const rows of [s.semesters, s.courses, s.assessments, s.tasks, s.hurdles, s.events, s.sources]) {
-    if (new Set(rows.map(r => r.id)).size !== rows.length) throw new Error('存在重复 ID')
+    if (new Set(rows.map(r => r.id)).size !== rows.length) throw new MessageError('validation.duplicateId')
   }
-  for (const sem of s.semesters) if (sem.end < sem.start) throw new Error(`学期 ${sem.name} 的结束日期早于开始日期`)
-  for (const c of s.courses) if (!s.semesters.some(x => x.id === c.semesterId)) throw new Error(`课程 ${c.name} 缺少有效学期`)
+  for (const sem of s.semesters) if (sem.end < sem.start) throw new MessageError('validation.semesterRange', { name: sem.name })
+  for (const c of s.courses) if (!s.semesters.some(x => x.id === c.semesterId)) throw new MessageError('validation.courseSemester', { name: c.name })
   for (const a of s.assessments) {
     const c = s.courses.find(x => x.id === a.courseId)
-    if (!c) throw new Error(`考核 ${a.title} 缺少有效课程`)
+    if (!c) throw new MessageError('validation.assessmentCourse', { name: a.title })
     const tz = s.semesters.find(x => x.id === c.semesterId)!.timezone
-    if (a.opens && a.due && toDate(a.opens, tz) > toDate(a.due, tz, true)) throw new Error(`${a.title} 的开放时间晚于截止时间`)
-    if (a.starts && a.ends && toDate(a.starts, tz) > toDate(a.ends, tz, true)) throw new Error(`${a.title} 的考试结束时间早于开始时间`)
-    if (a.score !== null && a.maxScore === null) throw new Error(`${a.title} 有得分时需要填写满分`)
-    if (a.score !== null && a.maxScore !== null && a.score > a.maxScore) throw new Error(`${a.title} 的得分高于满分`)
-    if (a.result && a.score !== null) throw new Error(`${a.title} 请在数值成绩和 Pass/Fail 中选择一种`)
+    if (a.opens && a.due && toDate(a.opens, tz) > toDate(a.due, tz, true)) throw new MessageError('validation.opensAfterDue', { name: a.title })
+    if (a.starts && a.ends && toDate(a.starts, tz) > toDate(a.ends, tz, true)) throw new MessageError('validation.examRange', { name: a.title })
+    if (a.score !== null && a.maxScore === null) throw new MessageError('validation.maxScoreRequired', { name: a.title })
+    if (a.score !== null && a.maxScore !== null && a.score > a.maxScore) throw new MessageError('validation.scoreOverMax', { name: a.title })
+    if (a.result && a.score !== null) throw new MessageError('validation.gradeConflict', { name: a.title })
   }
   for (const h of s.hurdles) {
-    if (!s.courses.some(c => c.id === h.courseId) || h.assessmentIds.some(i => !s.assessments.some(a => a.id === i && a.courseId === h.courseId))) throw new Error('Hurdle 关联的课程或考核无效')
-    if (h.scope === 'assessment' && h.assessmentIds.length !== 1) throw new Error('单项 hurdle 需要关联一个考核')
-    if (h.scope === 'group' && h.assessmentIds.length < 1) throw new Error('分组 hurdle 需要关联考核')
+    if (!s.courses.some(c => c.id === h.courseId) || h.assessmentIds.some(i => !s.assessments.some(a => a.id === i && a.courseId === h.courseId))) throw new MessageError('validation.hurdleLink')
+    if (h.scope === 'assessment' && h.assessmentIds.length !== 1) throw new MessageError('validation.hurdleSingle')
+    if (h.scope === 'group' && h.assessmentIds.length < 1) throw new MessageError('validation.hurdleGroup')
   }
-  for (const source of s.sources) if (!s.semesters.some(x => x.id === source.semesterId)) throw new Error('课表来源的学期无效')
+  for (const source of s.sources) if (!s.semesters.some(x => x.id === source.semesterId)) throw new MessageError('validation.sourceSemester')
   for (const event of s.events) {
-    if (!event.sourceId && !event.courseId) throw new Error('手动课表必须关联课程')
-    if (event.courseId && !s.courses.some(c => c.id === event.courseId)) throw new Error('课表课程关联无效')
-    if (event.sourceId && !s.sources.some(x => x.id === event.sourceId)) throw new Error('课表来源无效')
-    if (toDate(event.end, s.settings.timezone) < toDate(event.start, s.settings.timezone)) throw new Error('课表结束时间早于开始时间')
+    if (!event.sourceId && !event.courseId) throw new MessageError('validation.manualNeedsCourse')
+    if (event.courseId && !s.courses.some(c => c.id === event.courseId)) throw new MessageError('validation.eventCourse')
+    if (event.sourceId && !s.sources.some(x => x.id === event.sourceId)) throw new MessageError('validation.eventSource')
+    if (toDate(event.end, s.settings.timezone) < toDate(event.start, s.settings.timezone)) throw new MessageError('validation.eventRange')
   }
   return s
 }
@@ -105,4 +106,12 @@ export function dueDigestSlot(now: DateTime, time: string, enabledSince: string,
   if (DateTime.fromISO(enabledSince, { zone: now.zoneName! }) > slot) return null
   const date = slot.toISODate()!
   return lastSlot >= date ? null : date
+}
+
+export function digestWindow(now: DateTime, time: string, mode: 'manual' | 'auto'): { since: DateTime; until: DateTime } {
+  if (mode === 'manual') return { since: now.startOf('day'), until: now }
+  const [hour, minute] = time.split(':').map(Number)
+  let slot = now.set({ hour, minute, second: 0, millisecond: 0 })
+  if (slot > now) slot = slot.minus({ days: 1 })
+  return { since: slot.minus({ days: 1 }), until: slot }
 }

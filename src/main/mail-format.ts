@@ -1,22 +1,24 @@
+import { simpleParser } from 'mailparser'
 import type { Mail } from '../shared/types'
-interface Part { mimeType?: string; filename?: string; body?: { data?: string; size?: number }; parts?: Part[]; headers?: { name: string; value: string }[] }
-export interface GmailMessage { id: string; threadId: string; internalDate: string; snippet?: string; labelIds?: string[]; payload?: Part }
-export function decodeMail(input: GmailMessage): Mail {
-  const headers = input.payload?.headers || []
-  const header = (name: string) => headers.find(h => h.name.toLowerCase() === name)?.value || ''
-  const plain: string[] = [], html: string[] = [], attachments: Mail['attachments'] = []
-  const walk = (part: Part) => {
-    if (part.filename) { attachments.push({ name: part.filename, size: part.body?.size || 0 }); return }
-    if (part.body?.data) {
-      const value = Buffer.from(part.body.data, 'base64url').toString('utf8')
-      if (part.mimeType === 'text/plain') plain.push(value)
-      if (part.mimeType === 'text/html') html.push(value)
-    }
-    part.parts?.forEach(walk)
+import { zhCN } from '../shared/i18n/zh-CN'
+
+export async function parseRawMail(id: string, raw: Buffer, meta: { internalDate: Date; unread: boolean }, labels?: { noSubject?: string }): Promise<Mail> {
+  const parsed = await simpleParser(raw)
+  const text = parsed.text || ''
+  return {
+    id,
+    threadId: (parsed.messageId || '').replace(/[<>]/g, ''),
+    subject: parsed.subject || labels?.noSubject || zhCN.mail.noSubject,
+    from: parsed.from?.text || '',
+    date: meta.internalDate.toISOString(),
+    snippet: text.replace(/\s+/g, ' ').trim().slice(0, 160),
+    text,
+    html: typeof parsed.html === 'string' ? parsed.html : '',
+    unread: meta.unread,
+    attachments: parsed.attachments.map(a => ({ name: a.filename || 'attachment', size: a.size || 0 }))
   }
-  if (input.payload) walk(input.payload)
-  return { id: input.id, threadId: input.threadId, subject: header('subject') || '（无主题）', from: header('from'), date: new Date(Number(input.internalDate)).toISOString(), snippet: input.snippet || '', text: plain.join('\n'), html: html.join('\n'), unread: !!input.labelIds?.includes('UNREAD'), attachments }
 }
+
 export function splitText(text: string, limit: number): string[] {
   const parts: string[] = []
   for (let i = 0; i < text.length; i += limit) parts.push(text.slice(i, i + limit))

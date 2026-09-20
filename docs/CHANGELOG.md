@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.7.0 — 2026-09-20
+
+TODO 分类与双模式新建、Gmail 接入简化为应用专用密码、DeepSeek 默认模型升级、后台运行开关。
+
+- TODO 页分为「有DDL」与「无DDL」两个一级分类（学业考核都有截止日期，学业条目带「学业」标签，手动事项不再标注来源）；时间范围、搜索与状态/优先级/课程筛选作用于当前分类，统计条按分类计数。新建入口并入分类：有DDL 直接打开完整表单，无DDL 只需填写名称。编辑既有事项仍走完整编辑器。
+- Gmail 接入从 Google Cloud OAuth 改为 IMAP + 应用专用密码：设置页只需 Gmail 地址和 16 位应用专用密码（空格自动忽略），点击“测试并连接”即完成。邮件读取改用 imapflow（PEEK 模式，不改已读状态），MIME 解析改用 mailparser；摘要半开窗口、分块缓存与部分重试语义不变。“在 Gmail 打开”改用 rfc822msgid 搜索链接。
+- DeepSeek 默认模型 `deepseek-chat` → `deepseek-flash`（官方当前推荐），模型输入框提供 `deepseek-flash` / `deepseek-v4-pro` 候选，仍可自由填写。
+- 邮件总结窗口重定义：手动点击「生成 / 重试总结」总结今天 00:00 至今的收件箱邮件；每日自动总结覆盖昨日设定时间到今日设定时间的 24 小时窗口（应用时区）。窗口内邮件全量覆盖，不再按历史摘要跳过；AI 分块缓存保证重复总结不产生额外模型调用。
+- 新增界面字体选择：Windows 默认 / 苹方 (PingFang SC) / SF Pro / CaskaydiaCove Nerd Font，经 Fluent 主题 `fontFamilyBase` 注入即时生效（修复 Fluent 运行时样式覆盖导致选择无效的问题），与主题独立。
+- 设置页改为单列纵向布局；主题切换改为下拉选择（与语言、字体一致），始终显示当前主题名；Catppuccin 主题的默认变体改为 Mocha。
+- 界面文案大规模精简：移除 19 个装饰性/重复提示（字段注释、副标题、说明段落），缩短 6 个说明；保留隐私与数据安全相关说明。
+- 新增「关闭窗口后后台运行（驻留托盘）」开关（默认开，保持旧行为；关闭后叉掉窗口即退出应用）；开机自启开关文案独立，且应用启动时会向 Windows 同步一次登录项，防止外部改动漂移。`settings.closeToTray` 经 schema 默认值兼容旧数据，无需迁移。
+- 凭据仍为 safeStorage 加密的本机 `secrets.bin`（Gmail 应用专用密码 + DeepSeek key），不进用户档案导出；`docs/setup.md` 重写为两步验证 + 应用专用密码指引。
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
+## 0.6.0 — 2026-09-19
+
+Trilingual UI, layout-token theme contract, profile packages, and a simplification pass. No new features.
+
+- 三语言界面：简体中文（默认）、繁體中文、English (US)。全部界面文案（视图、对话框、托盘、通知、OAuth 回调页与校验错误）进入 `src/shared/i18n/` 类型化对照表，三语种 key 由类型系统强制对齐；`t()` 支持 `{count}` 插值与英语单数 `_one` 变体。设置页新增语言选择，`Settings.language` 由 schema 默认值兼容旧数据；切换语言即时重建托盘菜单与 `<html lang>`。
+- 主题包契约新增可选 `layout` 字段（主题级与变体级）：白名单排版 token（`sidebarWidth`、`sidebarRadius`、`topbarHeight`、`contentMaxWidth`、`panelWidth`、`mailPaneWidth`、`fontSizeBase`、`lineHeightBase`、`spaceUnit`、`radiusSm`/`radius`/`radiusLg`），经 `themes/registry.tsx` 注入为作用域 CSS 变量；`base.css` 布局尺寸改为 `var(--x, 默认值)`，存量主题渲染逐像素不变。`scripts/build-themes.cjs` 与 `tests/theme.test.ts` 同步校验。
+- 用户档案包 v2：导出 `{ version: 2, exportedAt, workspace, themes }`，随档案携带已安装主题包；导入逐包校验（无效主题跳过并在确认框说明），旧 v1 纯工作区备份永远可恢复。凭据与邮件/AI 缓存仍不进入档案，恢复前快照语义不变。
+- 主进程精简：`index.ts` 拆出 `window.ts`（窗口与材质）、`tray.ts`、`scheduler.ts`（提醒/订阅同步/digest 调度）；渲染层提取共享导航 `themes/shells/nav.tsx`，SettingsView 按区分组件，清理无引用导出。
+- 设计打磨：成绩条/周日号/日期列/议程时间启用 tabular-nums；列表与卡片补 hover 过渡与 :active 下沉反馈；tabs 增加 hover；英文长徽章与单复数排版回归。
+- 修复：设置页受控 select（语言、外观模式）在异步保存中读回已回退的 DOM 值导致选择不生效的问题。
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.5.0 — 2026-09-19
 
 Theme package architecture and a redesigned shared shell.
