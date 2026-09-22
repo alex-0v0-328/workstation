@@ -31,7 +31,7 @@
 
 - **原则**：不要为“外观不一样”而自绘整套按钮行、工具栏或弹窗；优先使用 `@fluentui/react-components` 提供的 `Toolbar`、`Menu`、`Dialog`、`Popover`、`Button`、`SplitButton` 等现成命令表面。
 - **本项目落点**：
-  - 页面级操作使用 `Toolbar` 或 `Menu` 组合；模态决策使用 `Dialog`（遵循原生 HTML dialog 生命周期，见 `AGENTS.md`）。
+  - 页面级操作使用 `Toolbar` 或 `Menu` 组合；模态决策使用 `Dialog`（遵循原生 HTML dialog 生命周期，见 `rules/dev.md`）。
   - 自定义组件只应做**组合**（把现成组件拼成业务视图）与**换肤**（覆盖 CSS 变量），不重新实现焦点、键盘、ARIA 行为。
   - 出处：`src/renderer/src/` 各 feature views；主题壳在 `src/renderer/src/themes/shells/`。
 
