@@ -131,7 +131,7 @@ themes/catppuccin/
 - 公共样式用 `.theme-<id>`。
 - 变体专属样式用 `.theme-<id>.variant-<vid>`。
 - 不要写 `#root`、`body` 等全局选择器，避免与内置主题冲突。
-- 参考 `themes/catppuccin/` 与 `themes/retro/`。
+- 参考 `themes/catppuccin/`、`themes/retro/` 与 `themes/cyber/`。
 
 ## 构建命令
 
@@ -151,6 +151,7 @@ themes/dist/<id>.wstheme.json
 
 - `themes/dist/catppuccin.wstheme.json`
 - `themes/dist/retro.wstheme.json`
+- `themes/dist/cyber.wstheme.json`
 
 该脚本会执行以下校验：
 
@@ -172,7 +173,7 @@ themes/dist/<id>.wstheme.json
 - 用户数据目录：`%APPDATA%\Workstation\themes\`
 - 开发/测试隔离：`.local\themes\`
 
-示例主题（Catppuccin、复古 Windows）随安装包通过 `electron-builder` 的 `extraResources` 分发到 `resources/themes/`，设置页提供一键安装入口。
+示例主题（Catppuccin、复古 Windows、Cyber 赛博朋克）随安装包通过 `electron-builder` 的 `extraResources` 分发到 `resources/themes/`，设置页提供一键安装入口。
 
 0.6.0 起，设置页「导出用户档案」会把本目录下已安装的主题包一并写入档案 JSON；在另一台机器导入档案时主题包随数据一并恢复（逐包校验，无效包跳过并在确认框说明）。主题包的 `name`/`description`/`variant.name` 属于作者数据，不随应用界面语言翻译。
 

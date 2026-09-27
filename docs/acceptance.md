@@ -102,6 +102,16 @@ Hidden packaged-EXE screenshots time out on this host after fonts load. Full int
 - The installed 0.8.1 build has been the user's daily build since 2026-09-25; the user confirmed the lock on 2026-09-28.
 - Remaining manual checks: installed-app review of the week time axis, bulk archive from the Done tab, and same-day digest replacement against the real mailbox, plus the 0.8.0 items above and the provider/desktop checks below.
 
+## Verified on 2026-09-28 (0.8.2, locked)
+
+- `npm.cmd test`: 59 tests passed across eight suites (the settings-schema case accepts `cyber` as a theme slug).
+- `npm.cmd run build`: TypeScript, theme-package build (now emitting `themes/dist/cyber.wstheme.json`), and all three production bundles passed.
+- `npm.cmd run smoke`: passed (`SMOKE_OK`, `PERSISTENCE_OK`, `THEMES_OK`, `BACKUP_RESTORE_OK`, `LANGUAGE_OK`). The theme step now installs each example from its own row (retro, then cyber), selects Cyber, and waits for `.theme-cyber.variant-acid.shell-sidebar`; screenshot `03d-cyber.png` reviewed.
+- `npm.cmd run package`: NSIS EXE + MSI produced and signed with the self-signed dev certificate (`CN=Workstation Dev`, uninstaller signed); `release/win-unpacked/resources/themes/` carries catppuccin, cyber, and retro. `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`); artifacts archived under `release/0.8.2/`.
+- Installer hashes: EXE 122,504,848 bytes SHA-256 `60C164AF33F2C9126B0F4037B1B8510F43B50EC3D22D46AFB4774CEA066D09BF`; MSI 137,056,256 bytes SHA-256 `D73490E06524A78855F3A287A02B0A315F96225CC39CEB081A5576E525412EE5`.
+- Installed-app acceptance: the user installed 0.8.2 over the real profile on 2026-09-28 and reported no issues; the profile's installed Cyber pack is field-for-field identical to the shipped `resources/themes/cyber.wstheme.json`. The one-click example install path was exercised by the smoke only, since the profile already had Cyber installed. The user confirmed the lock on 2026-09-28.
+- Remaining manual checks: the carried-over provider/desktop checks below.
+
 ## Requires user-owned configuration or manual installed-app verification
 
 - Gmail IMAP login with the user's app password, inbox listing, translate, and the daily digest against the real mailbox.

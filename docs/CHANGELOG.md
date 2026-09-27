@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.2 — 2026-09-28
+
+新增 Cyber 赛博朋克示例主题。
+
+- 新增示例主题包 Cyber 赛博朋克（`themes/cyber/`，变体 Acid）：纯黑底、荧光黄强调、切角几何、边缘辉光，侧边栏带涂鸦色块。它与 Catppuccin、复古 Windows 一样随安装包分发，可在“设置 → 外观与桌面”一键安装。
+- smoke 的主题步骤改为按示例行定位“安装”按钮：先装复古 Windows，再装 Cyber 并切换到 Acid 变体。修复了示例包增加到三个后“安装”按钮定位不唯一的问题。
+- README、`docs/product.md`、`docs/themes.md` 的示例主题清单同步加入 Cyber。
+
+Live provider credentials are not bundled. Actual Gmail, DeepSeek, school subscription, and installed Windows notification/login-launch acceptance remain explicitly separate from automated coverage.
+
 ## 0.8.1 — 2026-09-25
 
 TODO 看板重组、邮件列表缓存优先、每日总结可靠性修复、按时间轴排布的周课表。本版本包含 2026-09-24 的 0.8.0 装测构建。

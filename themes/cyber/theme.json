@@ -1,0 +1,39 @@
+{
+  "format": 1,
+  "id": "cyber",
+  "name": "Cyber 赛博朋克",
+  "version": "1.0.0",
+  "author": "Workstation",
+  "description": "传承自 personal-oos 的经典赛博朋克：纯黑底、荧光黄强调、切角几何与边缘辉光",
+  "shell": "sidebar",
+  "material": "none",
+  "sharedCss": "shared.css",
+  "variants": [
+    {
+      "id": "acid",
+      "name": "Acid",
+      "dark": true,
+      "accent": "#e8ff00",
+      "css": "acid.css",
+      "fluent": {
+        "colorNeutralBackground1": "#151517",
+        "colorNeutralBackground1Hover": "#1c1c1f",
+        "colorNeutralBackground1Pressed": "#0f0f11",
+        "colorNeutralBackground1Selected": "#1c1c1f",
+        "colorNeutralBackground2": "#0f0f11",
+        "colorNeutralBackground3": "#1c1c1f",
+        "colorNeutralForeground1": "#b8b8c0",
+        "colorNeutralForeground2": "#6a6a76",
+        "colorNeutralForeground3": "#3d3d47",
+        "colorNeutralStroke1": "#26262b",
+        "colorNeutralStroke2": "#3a3a42",
+        "colorBrandForeground1": "#e8ff00",
+        "colorBrandForegroundLink": "#e8ff00",
+        "colorBrandForegroundLinkHover": "#f2ff66",
+        "colorBrandBackground": "#e8ff00",
+        "colorBrandBackgroundHover": "#f2ff66",
+        "colorNeutralForegroundOnBrand": "#08080a"
+      }
+    }
+  ]
+}

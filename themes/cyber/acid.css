@@ -1,0 +1,17 @@
+.theme-cyber.variant-acid {
+  --accent: #e8ff00;
+  --accent-soft: #8b5cff;
+  --bg: #08080a;
+  --sidebar: #0f0f11;
+  --surface: #151517;
+  --input: #050506;
+  --text: #b8b8c0;
+  --muted: #6a6a76;
+  --border: #26262b;
+  --strong-border: #3a3a42;
+  --hover: #1c1c1f;
+  --tint: #e8ff0022;
+  --warning: #ff0a8c;
+  --red: #ff0a8c;
+  color-scheme: dark;
+}
