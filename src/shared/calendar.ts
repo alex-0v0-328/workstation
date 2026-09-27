@@ -73,6 +73,61 @@ export function mergeCalendarMappings(previous: CalendarEvent[], incoming: Calen
 export function startOfWeek(day: DateTime): DateTime {
   return day.minus({ days: day.weekday - 1 }).startOf('day')
 }
+
+export interface WeekSlot { event: CalendarEvent; top: number; height: number; lane: number; lanes: number }
+// Shared visible range for the week grid: a 08:00–20:00 baseline, extended to cover earlier or later sessions.
+export function weekTimeRange(events: CalendarEvent[], days: DateTime[], zone: string): { open: number; close: number } {
+  let open = 480, close = 1200
+  for (const day of days) {
+    const dayStart = day.startOf('day')
+    for (const event of events) {
+      if (event.allDay) continue
+      const start = DateTime.fromISO(event.start, { zone }).setZone(zone)
+      const end = DateTime.fromISO(event.end, { zone }).setZone(zone)
+      const from = Math.max(0, start.diff(dayStart, 'minutes').minutes)
+      const to = Math.min(1440, end.diff(dayStart, 'minutes').minutes)
+      if (to <= from) continue
+      open = Math.min(open, Math.floor(from / 60) * 60)
+      close = Math.max(close, Math.min(1440, Math.ceil(to / 60) * 60))
+    }
+  }
+  if (close <= open) close = open + 60
+  return { open, close }
+}
+// Positions one day's timed sessions on a proportional time axis; overlapping sessions split into side-by-side lanes.
+export function layoutDayEvents(events: CalendarEvent[], day: DateTime, zone: string, open: number, close: number): WeekSlot[] {
+  const dayStart = day.startOf('day')
+  const span = close - open
+  const timed = events.flatMap(event => {
+    if (event.allDay) return []
+    const start = DateTime.fromISO(event.start, { zone }).setZone(zone)
+    const end = DateTime.fromISO(event.end, { zone }).setZone(zone)
+    const startMin = Math.max(Math.max(0, start.diff(dayStart, 'minutes').minutes), open)
+    const endMin = Math.min(Math.min(1440, end.diff(dayStart, 'minutes').minutes), close)
+    return endMin > startMin ? [{ event, startMin, endMin }] : []
+  }).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin)
+  const slots: WeekSlot[] = []
+  let cluster: typeof timed = [], clusterEnd = -1
+  const flush = () => {
+    const lanes: number[] = []
+    const base = slots.length
+    for (const item of cluster) {
+      let lane = lanes.findIndex(end => end <= item.startMin)
+      if (lane < 0) { lane = lanes.length; lanes.push(0) }
+      lanes[lane] = item.endMin
+      slots.push({ event: item.event, top: (item.startMin - open) / span, height: (item.endMin - item.startMin) / span, lane, lanes: 0 })
+    }
+    for (let i = base; i < slots.length; i++) slots[i].lanes = lanes.length
+    cluster = []; clusterEnd = -1
+  }
+  for (const item of timed) {
+    if (cluster.length && item.startMin >= clusterEnd) flush()
+    cluster.push(item)
+    clusterEnd = Math.max(clusterEnd, item.endMin)
+  }
+  flush()
+  return slots
+}
 export function expandManual(input: ManualInput): CalendarEvent[] {
   let day = DateTime.fromISO(input.from, { zone: input.timezone })
   const end = DateTime.fromISO(input.to, { zone: input.timezone })

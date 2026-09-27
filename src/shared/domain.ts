@@ -59,12 +59,28 @@ export function validateWorkspace(input: unknown): Workspace {
   return s
 }
 
+export type TodoBucket = 'scheduled' | 'unscheduled' | 'standing'
+export function todoBucket(item: TodoItem): TodoBucket {
+  if (item.due) return 'scheduled'
+  return item.source === 'assessment' ? 'unscheduled' : 'standing'
+}
+
 export function aggregateTodos(s: Workspace, includeArchived = false): TodoItem[] {
   const courses = s.courses.filter(c => (includeArchived || !c.archived) && s.semesters.some(x => x.id === c.semesterId && (includeArchived || !x.archived)))
   return [...s.tasks.filter(t => includeArchived || !t.archived).map(t => ({ ...t, source: 'task' as const, timezone: s.settings.timezone })), ...s.assessments.filter(a => (includeArchived || !a.archived) && courses.some(c => c.id === a.courseId)).map(a => {
     const c = courses.find(c => c.id === a.courseId)!
     return { ...a, archived: !!(a.archived || c.archived || s.semesters.find(x => x.id === c.semesterId)!.archived), due: a.due || a.starts, source: 'assessment' as const, courseName: c.name, color: c.color, timezone: s.semesters.find(x => x.id === c.semesterId)!.timezone }
   })]
+}
+// Bulk archiving from the Done tab skips assessments with a recorded grade, so grade stats keep their data.
+export function doneArchiveKept(item: Pick<TodoItem, 'source' | 'score' | 'result'>): boolean {
+  return item.source === 'assessment' && ((item.score !== null && item.score !== undefined) || !!item.result)
+}
+export function archiveDoneTodos(s: Workspace): number {
+  let count = 0
+  for (const t of s.tasks) if (t.status === 'done' && !t.archived) { t.archived = true; count++ }
+  for (const a of s.assessments) if (a.status === 'done' && !a.archived && a.score === null && !a.result) { a.archived = true; count++ }
+  return count
 }
 // Calendar views list one semester's courses and sources; manual events inherit the course/semester archive cascade like assessments.
 export function visibleCalendarEvents(events: CalendarEvent[], courses: Course[], sources: CalendarSource[], semesters: Semester[]): CalendarEvent[] {

@@ -4,7 +4,7 @@ import { Button } from '@fluentui/react-components'
 import { Add20Regular, ArrowSync20Regular, ArrowUpload20Regular, ChevronLeft20Regular, ChevronRight20Regular } from '@fluentui/react-icons'
 import { useModel, uid } from './model'
 import { SectionTitle, Panel, Field, TextField, SaveButton, readForm, str } from './components'
-import { expandManual, startOfWeek } from '../../shared/calendar'
+import { expandManual, layoutDayEvents, startOfWeek, weekTimeRange } from '../../shared/calendar'
 import { visibleCalendarEvents } from '../../shared/domain'
 import type { CalendarEvent, IcsPreview, Semester } from '../../shared/types'
 
@@ -19,10 +19,53 @@ export function CalendarView() {
   const sources = state.sources.filter(s => s.semesterId === semester?.id)
   const days = Array.from({ length: 7 }, (_, i) => startOfWeek(week).plus({ days: i }))
   const events = visibleCalendarEvents(state.events, courses, sources, state.semesters)
+  const nowInZone = DateTime.now().setZone(zone)
+  const { open, close } = weekTimeRange(events, days, zone)
+  const span = close - open
+  const bodyHeight = (span / 60) * 48
+  const hourMarks = Array.from({ length: span / 60 + 1 }, (_, i) => open + i * 60)
+  const allDayOn = (day: DateTime) => events.filter(e => {
+    if (!e.allDay) return false
+    const start = DateTime.fromISO(e.start, { zone }).setZone(zone)
+    const end = DateTime.fromISO(e.end, { zone }).setZone(zone)
+    return start.startOf('day') <= day.startOf('day') && end > day.startOf('day')
+  })
+  const hasAllDay = days.some(day => allDayOn(day).length > 0)
   return <>
     <SectionTitle title={t('calendar.heading')} actions={<><Button icon={<ArrowSync20Regular />} onClick={() => void run(async () => { await window.workstation.syncCalendars(); await reload() }, t('calendar.refreshDone'))}>{t('calendar.refresh')}</Button><Button icon={<ArrowUpload20Regular />} disabled={!semester} onClick={() => setImporting(true)}>{t('calendar.importIcs')}</Button><Button appearance="primary" icon={<Add20Regular />} disabled={!courses.length} onClick={() => setManual(true)}>{t('calendar.manual')}</Button></>} />
     <div className="calendar-toolbar"><select aria-label={t('calendar.semesterAria')} value={semester?.id || ''} onChange={e => setSemesterId(e.target.value)}>{!state.semesters.length && <option value="">{t('calendar.noSemester')}</option>}{state.semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select><Button aria-label={t('calendar.prevWeek')} icon={<ChevronLeft20Regular />} onClick={() => setWeek(w => w.minus({ weeks: 1 }))} /><Button onClick={() => setWeek(currentWeek())}>{t('calendar.thisWeek')}</Button><Button aria-label={t('calendar.nextWeek')} icon={<ChevronRight20Regular />} onClick={() => setWeek(w => w.plus({ weeks: 1 }))} /><strong>{week.setLocale(messages.meta.locale).toFormat(messages.time.weekStart)} — {week.plus({ days: 6 }).setLocale(messages.meta.locale).toFormat(messages.time.weekEnd)}</strong><span className="muted">{zone}</span></div>
-    <section className="week-grid surface">{days.map(day => { const date = day.toISODate(); const dayEvents = events.filter(e => { const start = DateTime.fromISO(e.start, { zone }).setZone(zone), end = DateTime.fromISO(e.end, { zone }).setZone(zone); return start.startOf('day') <= day.endOf('day').setZone(zone, { keepLocalTime: true }) && end > day.startOf('day').setZone(zone, { keepLocalTime: true }) }).sort((a, b) => a.start.localeCompare(b.start)); const today = date === DateTime.now().setZone(zone).toISODate(); return <div className="week-day" key={date}><div className={`week-day-heading ${today ? 'today' : ''}`}><span>{day.setLocale(messages.meta.locale).toFormat('ccc')}</span><strong>{day.day}</strong></div><div className="day-events">{dayEvents.map(event => { const course = courses.find(c => c.id === event.courseId); return <button key={event.id} className="calendar-event" style={{ borderLeftColor: course?.color || '#8a8886' }} onClick={() => setSelected(event)}><span>{event.allDay ? t('time.allDay') : `${DateTime.fromISO(event.start).setZone(zone).toFormat('HH:mm')}–${DateTime.fromISO(event.end).setZone(zone).toFormat('HH:mm')}`}</span><strong>{event.title}</strong><small>{course?.code || course?.name || t('calendar.unlinked')}</small>{event.location && <small>{event.location}</small>}</button>})}{!dayEvents.length && <span className="no-events">—</span>}</div></div> })}</section>
+    <section className="week-board surface">
+      <div className="week-row week-head">
+        <div className="week-gutter" />
+        {days.map(day => { const date = day.toISODate(); const isToday = date === nowInZone.toISODate(); return <div className={`week-day-heading ${isToday ? 'today' : ''}`} key={date}><span>{day.setLocale(messages.meta.locale).toFormat('ccc')}</span><strong>{day.day}</strong></div> })}
+      </div>
+      {hasAllDay && <div className="week-row week-allday">
+        <div className="week-gutter"><span>{t('time.allDay')}</span></div>
+        {days.map(day => <div className="week-allday-cell" key={day.toISODate()}>{allDayOn(day).map(event => { const course = courses.find(c => c.id === event.courseId); return <button key={event.id} className="calendar-event allday" style={{ borderLeftColor: course?.color || '#8a8886' }} onClick={() => setSelected(event)}><strong>{event.title}</strong></button> })}</div>)}
+      </div>}
+      <div className="week-row week-body">
+        <div className="week-gutter week-axis" style={{ height: bodyHeight }}>
+          {hourMarks.slice(0, -1).map(min => <span key={min} style={{ top: ((min - open) / span) * bodyHeight }}>{String(Math.floor(min / 60)).padStart(2, '0')}:00</span>)}
+        </div>
+        {days.map(day => {
+          const date = day.toISODate()!
+          const isToday = date === nowInZone.toISODate()
+          const nowMinutes = nowInZone.hour * 60 + nowInZone.minute
+          return <div className="week-lane" key={date} style={{ height: bodyHeight }}>
+            {hourMarks.map(min => <i key={min} className="week-hour-line" style={{ top: ((min - open) / span) * bodyHeight }} />)}
+            {hourMarks.slice(0, -1).map(min => <i key={`h${min}`} className="week-half-line" style={{ top: ((min + 30 - open) / span) * bodyHeight }} />)}
+            {isToday && nowMinutes > open && nowMinutes < close && <i className="week-now-line" style={{ top: ((nowMinutes - open) / span) * bodyHeight }} />}
+            {layoutDayEvents(events, day, zone, open, close).map(slot => {
+              const event = slot.event
+              const course = courses.find(c => c.id === event.courseId)
+              const height = Math.max(18, slot.height * bodyHeight)
+              const tier = height >= 58 ? '' : height >= 34 ? ' compact' : ' compact tiny'
+              return <button key={event.id} className={`calendar-event timed${tier}`} style={{ top: slot.top * bodyHeight, height, left: `calc(${(slot.lane / slot.lanes) * 100}% + 2px)`, width: `calc(${100 / slot.lanes}% - 4px)`, borderLeftColor: course?.color || '#8a8886' }} onClick={() => setSelected(event)}><span>{`${DateTime.fromISO(event.start).setZone(zone).toFormat('HH:mm')}–${DateTime.fromISO(event.end).setZone(zone).toFormat('HH:mm')}`}</span><strong>{event.title}</strong><small>{course?.code || course?.name || t('calendar.unlinked')}</small>{event.location && <small>{event.location}</small>}</button>
+            })}
+          </div>
+        })}
+      </div>
+    </section>
     <section className="calendar-sources"><div className="section-header"><h3>{t('calendar.sourcesHeading')}</h3><span className="muted">{t('calendar.sourcesNote')}</span></div>{sources.length ? sources.map(s => <div className="source-row surface" key={s.id}><div><strong>{s.name}</strong><small>{s.url ? t('calendar.kindSubscription') : t('calendar.kindLocal')} · {s.lastSync ? t('calendar.lastSync', { time: DateTime.fromISO(s.lastSync).setZone(zone).setLocale(messages.meta.locale).toFormat(messages.time.syncTime) }) : t('calendar.neverSynced')}</small>{s.error && <small className="warning-text">{t.has(s.error) ? t.text(s.error) : s.error}</small>}</div><Button onClick={() => setImporting(true)}>{t('calendar.reimport')}</Button>{s.url && <Button onClick={() => void mutate(w => { w.sources.find(x => x.id === s.id)!.url = '' })}>{t('calendar.disableSubscription')}</Button>}</div>) : <p className="muted">{t('calendar.sourcesEmpty')}</p>}</section>
     {importing && semester && <IcsImport semesterId={semester.id} close={() => setImporting(false)} />}
     {manual && semester && <ManualSchedule semesterId={semester.id} close={() => setManual(false)} />}

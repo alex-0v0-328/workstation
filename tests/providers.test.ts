@@ -129,9 +129,69 @@ describe('daily digest checkpoint integrity', () => {
     expect(digest.entries.map(e => e.mailId)).toEqual(['2'])
     vi.unstubAllGlobals()
   })
+  it('does not let a stale unfinished digest block the next slot', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] }); vi.setSystemTime(new Date('2026-09-14T20:30:00Z'))
+    const { providers, state } = harness([
+      { uid: 1, raw: rawMail('bad', 'bad'), internalDate: new Date('2026-09-14T10:00:00Z') },
+      { uid: 2, raw: rawMail('good', 'good'), internalDate: new Date('2026-09-15T10:00:00Z') }
+    ])
+    state.settings.timezone = 'UTC'
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, options?: RequestInit) => {
+      if (String(options?.body).includes('\\"emailContent\\":\\"bad\\"')) return new Response('', { status: 429 })
+      return Response.json({ choices: [{ message: { content: '摘要' } }] })
+    }))
+    const first = await providers.summarize('auto')
+    expect(first.state).toBe('partial')
+    vi.setSystemTime(new Date('2026-09-15T21:00:00Z'))
+    const second = await providers.summarize('auto')
+    expect(second.id).not.toBe(first.id)
+    expect(second.until).toBe('2026-09-15T20:00:00.000Z')
+    expect(second.entries.map(e => e.mailId)).toEqual(['2'])
+    expect(second.state).toBe('done')
+    expect(providers.digests().find(d => d.id === first.id)?.state).toBe('partial')
+    vi.unstubAllGlobals()
+  })
+  it('replaces an earlier same-day digest once a later run fully covers its window', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] }); vi.setSystemTime(new Date('2026-09-14T10:00:00Z'))
+    const { providers, state } = harness([{ uid: 1, raw: rawMail('a', 'a'), internalDate: new Date('2026-09-14T02:00:00Z') }])
+    state.settings.timezone = 'UTC'
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ choices: [{ message: { content: '摘要' } }] })))
+    const morning = await providers.summarize('manual')
+    expect(morning.state).toBe('done')
+    vi.setSystemTime(new Date('2026-09-14T22:00:00Z'))
+    const night = await providers.summarize('manual')
+    expect(night.state).toBe('done')
+    expect(providers.digests().map(d => d.id)).toEqual([night.id])
+    vi.unstubAllGlobals()
+  })
+  it('keeps a same-day digest with a wider window and digests from other days', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] }); vi.setSystemTime(new Date('2026-09-14T22:00:00Z'))
+    const { providers, state, cache } = harness()
+    state.settings.timezone = 'UTC'
+    cache.set('digest:history', [
+      { id: 'wide', created: '2026-09-14T20:00:00.000Z', since: '2026-09-13T20:00:00.000Z', until: '2026-09-14T20:00:00.000Z', state: 'done', entries: [] },
+      { id: 'other-day', created: '2026-09-13T22:00:00.000Z', since: '2026-09-14T01:00:00.000Z', until: '2026-09-14T10:00:00.000Z', state: 'done', entries: [] }
+    ])
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ choices: [{ message: { content: '摘要' } }] })))
+    const manual = await providers.summarize('manual')
+    expect(manual.state).toBe('done')
+    expect(providers.digests().map(d => d.id).sort()).toEqual(['other-day', 'wide', manual.id].sort())
+    vi.unstubAllGlobals()
+  })
 })
-describe('cache pruning', () => {
-  it('removes expired and legacy mail/ai cache entries while keeping fresh ones', () => {
+describe('incremental list updates', () => {
+  it('serves the cached list without touching the network and reports misses honestly', async () => {
+    const { providers } = harness([{ uid: 1, raw: rawMail('a', 'a'), internalDate: new Date('2026-09-14T02:00:00Z') }])
+    const miss = await providers.list({ query: '', cachedOnly: true })
+    expect(miss).toMatchObject({ hit: false, messages: [] })
+    await providers.list({ query: '' })
+    Object.assign(providers as any, { openMailbox: async () => { throw new Error('offline') } })
+    const snap = await providers.list({ query: '', cachedOnly: true })
+    expect(snap).toMatchObject({ hit: true, cached: true })
+    expect(snap.messages.map(m => m.subject)).toEqual(['a'])
+  })
+})
+describe('cache pruning', () => {  it('removes expired and legacy mail/ai cache entries while keeping fresh ones', () => {
     vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] }); vi.setSystemTime(new Date('2026-09-18T00:00:00Z'))
     const { providers, cache } = harness()
     const now = Date.now(), day = 24 * 3600 * 1000

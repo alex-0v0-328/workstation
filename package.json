@@ -1,6 +1,6 @@
 {
   "name": "workstation",
-  "version": "0.7.0",
+  "version": "0.8.1",
   "private": true,
   "description": "A local-first Windows workspace for tasks, study, and mail.",
   "author": "Alex",

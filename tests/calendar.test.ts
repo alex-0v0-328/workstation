@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DateTime } from 'luxon'
-import { parseCalendar, expandManual, startOfWeek } from '../src/shared/calendar'
+import { parseCalendar, expandManual, layoutDayEvents, startOfWeek, weekTimeRange } from '../src/shared/calendar'
 import { visibleCalendarEvents } from '../src/shared/domain'
 import type { CalendarEvent, CalendarSource, Course, Semester } from '../src/shared/types'
 
@@ -89,6 +89,41 @@ describe('calendar event visibility', () => {
       semesters
     )
     expect(ids(visible)).toEqual(['imported-old'])
+  })
+})
+
+describe('week time-axis layout', () => {
+  const zone = 'Australia/Melbourne'
+  const day = DateTime.fromISO('2026-09-14', { zone })
+  const ev = (id: string, start: string, end: string, allDay = false): CalendarEvent => ({ id, sourceId: '', uid: id, courseId: '', title: id, start, end, allDay, location: '' })
+  it('keeps a 08:00–20:00 baseline and extends it around early or late sessions', () => {
+    expect(weekTimeRange([], [day], zone)).toEqual({ open: 480, close: 1200 })
+    expect(weekTimeRange([ev('a', '2026-09-14T09:15:00+10:00', '2026-09-14T10:45:00+10:00')], [day], zone)).toEqual({ open: 480, close: 1200 })
+    expect(weekTimeRange([ev('b', '2026-09-14T06:30:00+10:00', '2026-09-14T21:40:00+10:00')], [day], zone)).toEqual({ open: 360, close: 1320 })
+  })
+  it('positions sessions proportionally inside the visible range', () => {
+    const slots = layoutDayEvents([ev('a', '2026-09-14T09:00:00+10:00', '2026-09-14T10:00:00+10:00')], day, zone, 480, 1200)
+    expect(slots).toHaveLength(1)
+    expect(slots[0]).toMatchObject({ lane: 0, lanes: 1 })
+    expect(slots[0].top).toBeCloseTo(60 / 720)
+    expect(slots[0].height).toBeCloseTo(60 / 720)
+  })
+  it('clips overnight sessions to the day and drops out-of-range ones', () => {
+    const slots = layoutDayEvents([ev('late', '2026-09-13T23:00:00+10:00', '2026-09-14T01:00:00+10:00'), ev('gone', '2026-09-15T09:00:00+10:00', '2026-09-15T10:00:00+10:00')], day, zone, 480, 1200)
+    expect(slots).toHaveLength(0)
+    const wide = layoutDayEvents([ev('late', '2026-09-13T23:00:00+10:00', '2026-09-14T01:00:00+10:00')], day, zone, 0, 1440)
+    expect(wide).toHaveLength(1)
+    expect(wide[0].top).toBe(0)
+    expect(wide[0].height).toBeCloseTo(60 / 1440)
+  })
+  it('splits overlapping sessions into lanes and skips all-day events', () => {
+    const slots = layoutDayEvents([
+      ev('a', '2026-09-14T09:00:00+10:00', '2026-09-14T10:30:00+10:00'),
+      ev('b', '2026-09-14T10:00:00+10:00', '2026-09-14T11:00:00+10:00'),
+      ev('c', '2026-09-14T11:00:00+10:00', '2026-09-14T12:00:00+10:00'),
+      ev('d', '2026-09-14', '2026-09-15', true)
+    ], day, zone, 480, 1200)
+    expect(slots.map(s => [s.event.id, s.lane, s.lanes])).toEqual([['a', 0, 2], ['b', 1, 2], ['c', 0, 1]])
   })
 })
 

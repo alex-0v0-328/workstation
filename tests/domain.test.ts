@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { aggregateTodos, calculateGrade, validateWorkspace, emptyWorkspace, reminderCandidates } from '../src/shared/domain'
+import { aggregateTodos, archiveDoneTodos, calculateGrade, validateWorkspace, emptyWorkspace, reminderCandidates, todoBucket } from '../src/shared/domain'
+import type { Assessment, Task } from '../src/shared/types'
 
 describe('settings schema', () => {
   it('accepts theme ids as slugs and defaults a missing variant to empty', () => {
-    for (const theme of ['windows', 'catppuccin', 'retro']) {
+    for (const theme of ['windows', 'catppuccin', 'retro', 'cyber']) {
       const state = emptyWorkspace()
       state.settings.theme = theme
       expect(validateWorkspace(state).settings.theme).toBe(theme)
@@ -79,5 +80,55 @@ describe('academic integrity', () => {
     ]
     const now = new Date('2026-09-14T02:00:00Z')
     expect(reminderCandidates(items, now, 'Australia/Sydney', {}).map(x => x.item.id)).toEqual(['1'])
+  })
+})
+
+describe('todo classification', () => {
+  const withCourse = () => {
+    const state = emptyWorkspace()
+    state.semesters.push({ id: 's', name: 'Semester', start: '2026-07-01', end: '2026-12-01', timezone: 'Australia/Sydney', archived: false })
+    state.courses.push({ id: 'c', semesterId: 's', name: 'Course', code: '', color: '#0078d4', url: '', notes: '', archived: false })
+    return state
+  }
+  const exam = (over: Partial<Assessment>): Assessment => ({ id: 'a', courseId: 'c', title: 'Exam', category: 'Exam', status: 'todo', priority: 'normal', due: '', opens: '', starts: '', ends: '', weight: null, score: null, maxScore: null, result: '', location: '', url: '', notes: '', reminders: true, ...over })
+  const chore = (over: Partial<Task>): Task => ({ id: 't', title: 'Chore', status: 'todo', priority: 'normal', due: '', notes: '', reminders: true, ...over })
+
+  it('keeps an unscheduled exam out of the standing-todo bucket', () => {
+    const state = withCourse()
+    state.assessments.push(exam({}))
+    state.tasks.push(chore({}))
+    const todos = aggregateTodos(state)
+    expect(todoBucket(todos.find(t => t.id === 'a')!)).toBe('unscheduled')
+    expect(todoBucket(todos.find(t => t.id === 't')!)).toBe('standing')
+  })
+  it('treats anything with a concrete deadline or start time as scheduled', () => {
+    const state = withCourse()
+    state.assessments.push(exam({ id: 'a1', starts: '2026-11-10T09:00' }))
+    state.assessments.push(exam({ id: 'a2', due: '2026-10-01' }))
+    state.tasks.push(chore({ due: '2026-09-30' }))
+    const todos = aggregateTodos(state)
+    for (const id of ['a1', 'a2', 't']) expect(todoBucket(todos.find(t => t.id === id)!)).toBe('scheduled')
+  })
+})
+
+describe('bulk archiving completed todos', () => {
+  it('archives done tasks and ungraded assessments but keeps graded ones for the grade stats', () => {
+    const state = emptyWorkspace()
+    state.semesters.push({ id: 's', name: 'Semester', start: '2026-07-01', end: '2026-12-01', timezone: 'Australia/Sydney', archived: false })
+    state.courses.push({ id: 'c', semesterId: 's', name: 'Course', code: '', color: '#0078d4', url: '', notes: '', archived: false })
+    state.tasks.push(
+      { id: 't1', title: 'Done task', status: 'done', priority: 'normal', due: '', notes: '', reminders: true },
+      { id: 't2', title: 'Open task', status: 'todo', priority: 'normal', due: '', notes: '', reminders: true },
+      { id: 't3', title: 'Already archived', status: 'done', priority: 'normal', due: '', notes: '', reminders: true, archived: true }
+    )
+    state.assessments.push(
+      { id: 'a1', courseId: 'c', title: 'Ungraded', category: 'Assignment', status: 'done', priority: 'normal', due: '', opens: '', starts: '', ends: '', weight: null, score: null, maxScore: null, result: '', location: '', url: '', notes: '', reminders: true },
+      { id: 'a2', courseId: 'c', title: 'Scored', category: 'Assignment', status: 'done', priority: 'normal', due: '', opens: '', starts: '', ends: '', weight: 20, score: 80, maxScore: 100, result: '', location: '', url: '', notes: '', reminders: true },
+      { id: 'a3', courseId: 'c', title: 'PassFail', category: 'Assignment', status: 'done', priority: 'normal', due: '', opens: '', starts: '', ends: '', weight: 10, score: null, maxScore: null, result: 'pass', location: '', url: '', notes: '', reminders: true },
+      { id: 'a4', courseId: 'c', title: 'Open exam', category: 'Exam', status: 'todo', priority: 'normal', due: '', opens: '', starts: '', ends: '', weight: null, score: null, maxScore: null, result: '', location: '', url: '', notes: '', reminders: true }
+    )
+    expect(archiveDoneTodos(state)).toBe(2)
+    expect(state.tasks.map(t => [t.id, !!t.archived])).toEqual([['t1', true], ['t2', false], ['t3', true]])
+    expect(state.assessments.map(a => [a.id, !!a.archived])).toEqual([['a1', true], ['a2', false], ['a3', false], ['a4', false]])
   })
 })

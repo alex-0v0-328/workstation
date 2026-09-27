@@ -97,10 +97,14 @@ export class Providers {
     this.cacheSet(`mail:body:${id}`, mail)
     return mail
   }
-  async list(input: { query: string; pageToken?: string }): Promise<{ messages: Mail[]; nextPageToken?: string; cached?: boolean }> {
+  async list(input: { query: string; pageToken?: string; cachedOnly?: boolean }): Promise<{ messages: Mail[]; nextPageToken?: string; cached?: boolean; hit?: boolean }> {
     const generation = this.generation
     const offset = Math.max(0, Number(input.pageToken) || 0)
     const cacheKey = `mail:list:${input.query}:${offset}`
+    if (input.cachedOnly) {
+      const cached = this.cacheGet<{ messages: Mail[]; nextPageToken?: string }>(cacheKey)
+      return cached ? { ...cached, cached: true, hit: true } : { messages: [], cached: true, hit: false }
+    }
     let mailbox: ImapLike | undefined
     try {
       mailbox = await this.openMailbox(this.auth()).catch(e => { throw mapImapError(e) })
@@ -172,12 +176,13 @@ export class Providers {
     const settings = this.store.load().settings
     if (!settings.digestSince) throw new MessageError('remote.digestNeedEnable')
     let history = this.digests()
-    let digest = history.find(d => d.state !== 'done')
+    const now = DateTime.now().setZone(settings.timezone)
+    const window = digestWindow(now, settings.digestTime, mode)
+    // Resume only an unfinished digest that still belongs to the current window; a stale partial must not block new slots.
+    let digest = history.find(d => d.state !== 'done' && Date.parse(d.until) > window.since.toMillis())
     const mailbox = await this.openMailbox(this.auth()).catch(e => { throw mapImapError(e) })
     try {
       if (!digest) {
-        const now = DateTime.now().setZone(settings.timezone)
-        const window = digestWindow(now, settings.digestTime, mode)
         const until = window.until.toUTC().toISO()!
         const sinceIso = window.since.toUTC().toISO()!
         const searchSince = new Date(Math.floor(window.since.toUTC().toMillis() / DAY_MS) * DAY_MS)
@@ -202,6 +207,12 @@ export class Providers {
       }
       current.entries = current.entries.filter(entry => !outsideWindow.has(entry.mailId))
       current.state = current.entries.some(e => e.error) ? 'partial' : 'done'
+      if (current.state === 'done') {
+        // A finished digest replaces earlier finished digests from the same local day whose window it fully covers.
+        const day = DateTime.fromISO(current.created).setZone(settings.timezone).toISODate()
+        const untilMs = Date.parse(current.until)
+        history = history.filter(d => d.id === current.id || d.state !== 'done' || DateTime.fromISO(d.created).setZone(settings.timezone).toISODate() !== day || (d.since ? Date.parse(d.since) : -Infinity) < sinceMs || Date.parse(d.until) > untilMs)
+      }
       this.saveDigests(history)
       if (current.state === 'done') { const state = this.store.load(); state.settings.digestSince = current.until; this.store.save(state) }
       this.changed(); return current

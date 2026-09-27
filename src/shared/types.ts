@@ -10,7 +10,7 @@ export interface CalendarSource { id: string; name: string; url: string; semeste
 export interface Settings { theme: string; variant: string; appearance: 'system' | 'light' | 'dark'; language: import('./i18n').Language; font: '' | 'pingfang' | 'sfpro' | 'caskaydia'; timezone: string; startAtLogin: boolean; closeToTray: boolean; notifications: boolean; digestEnabled: boolean; digestTime: string; digestSince: string; model: string }
 export interface ThemeState { themes: import('./theme-manifest').ThemeManifest[]; examples: { id: string; name: string; description: string }[]; active: { id: string; variant: string; material: string } }
 export interface Workspace { version: 1; revision: number; semesters: Semester[]; courses: Course[]; assessments: Assessment[]; tasks: Task[]; hurdles: Hurdle[]; events: CalendarEvent[]; sources: CalendarSource[]; settings: Settings }
-export interface TodoItem extends Task { source: 'assessment' | 'task'; courseId?: string; courseName?: string; category?: string; color?: string; timezone?: string; opens?: string }
+export interface TodoItem extends Task { source: 'assessment' | 'task'; courseId?: string; courseName?: string; category?: string; color?: string; timezone?: string; opens?: string; score?: number | null; result?: '' | 'pass' | 'fail' }
 export interface Mail { id: string; threadId: string; subject: string; from: string; date: string; snippet: string; text: string; html: string; unread: boolean; attachments: { name: string; size: number }[] }
 export interface Digest { id: string; created: string; since?: string; until: string; state: 'pending' | 'partial' | 'done'; entries: { mailId: string; subject: string; summary: string; error: string }[] }
 export interface Connection { email: string; hasPassword: boolean; hasKey: boolean; lastError: string }
@@ -27,7 +27,7 @@ export interface Bridge {
   saveSecrets(input: { email?: string; appPassword?: string; apiKey?: string }): Promise<Connection>
   connectGmail(): Promise<Connection>
   disconnectGmail(): Promise<Connection>
-  listMail(input: { query: string; pageToken?: string }): Promise<{ messages: Mail[]; nextPageToken?: string; cached?: boolean }>
+  listMail(input: { query: string; pageToken?: string; cachedOnly?: boolean }): Promise<{ messages: Mail[]; nextPageToken?: string; cached?: boolean; hit?: boolean }>
   readMail(id: string): Promise<Mail>
   translateMail(id: string): Promise<string>
   testAI(): Promise<string>

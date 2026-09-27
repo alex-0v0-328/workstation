@@ -83,6 +83,25 @@ Hidden packaged-EXE screenshots time out on this host after fonts load. Full int
 - Installer hashes: EXE 122,499,256 bytes SHA-256 `7D27AB4798A7F03757767D7FD414AD0F2C9DA467AA3B20F08FC2ADA967F6310C`; MSI 137,052,160 bytes SHA-256 `DDFD3FDAA4C717FE2D923497BAA5CA4155F542B4C08961BFC9E8C3014143ED7C`.
 - Remaining manual checks for this release: daily auto digest at the set time against the real mailbox, manual digest covering today-since-00:00, closeToTray-off quit behavior and the login-item toggle on the installed build, PingFang/SF Pro/CaskaydiaCove rendering on the user's machine (fonts must be installed locally to take effect), and installed-app Mica/trilingual acceptance carried over from 0.6.0.
 
+## Verified on 2026-09-24 (0.8.0, first install-test build)
+
+- `npm.cmd test`: 52 tests passed across eight suites. New coverage: TODO bucket classification (`todoBucket` — unscheduled academic assessments land in 待排期 and never in the 日常 standing bucket; anything with a concrete deadline/start is scheduled), stale partial digests no longer blocking the next slot (only an unfinished digest inside the current window is resumed), and cache-first mail-list snapshots (`cachedOnly` + `hit`, served without network).
+- `npm.cmd run build`: TypeScript, theme-package build, and all three production bundles passed.
+- `npm.cmd run smoke`: passed (`SMOKE_OK`, `PERSISTENCE_OK`, `THEMES_OK`, `BACKUP_RESTORE_OK`, `LANGUAGE_OK`). The TODO flow now drives the new single-row tabs (今天/有DDL/日常/已完成/已归档), the unified add dialog with the 日常 (default) / 有DDL type cards, and the 有DDL range sub-tabs.
+- `npm.cmd run package`: NSIS EXE + MSI produced and signed with the self-signed dev certificate (uninstaller signed); `node scripts/packaged-check.cjs`: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`); artifacts archived under `release/0.8.0/`.
+- Installer hashes: EXE 122,499,480 bytes SHA-256 `FC957ECD135BA4F7DDCF07B90A97A13E0D30EE873BB168D746DF16E521F04C9E`; MSI 137,043,968 bytes SHA-256 `003E822FD91C87165AF80FD91E83C4E0561C53EA2C8EF02D1FDA1D1905BEF34A`.
+- Remaining manual checks for this build: installed-app acceptance of the regrouped TODO board (学业/生活 groups, 待排期 exams, 今天 landing), digest catch-up on login after a missed slot against the real mailbox, cache-first inbox refresh against the real mailbox, collapsible settings sections and digest archive interaction, plus the carried-over provider/desktop checks below. This is a long-cycle test build — expect several installer revisions before 0.8.0 locks.
+
+## Verified on 2026-09-28 (0.8.1, locked)
+
+- `npm.cmd test`: 59 tests passed across eight suites. New since 0.8.0: week time-axis layout (`weekTimeRange` keeps the 08:00–20:00 baseline and extends it around early or late sessions; `layoutDayEvents` positions sessions proportionally, clips overnight sessions, drops out-of-range ones, and splits overlaps into lanes while skipping all-day events), same-day digest replacement (a later finished run that fully covers an earlier same-day digest replaces it; wider-window and other-day digests are kept), and bulk archiving of completed todos (`archiveDoneTodos` keeps assessments with a recorded score or pass/fail result).
+- `npm.cmd run build`: TypeScript, theme-package build, and all three production bundles passed.
+- `npm.cmd run smoke`: passed on a clean copy of `HEAD` plus the 0.8.1 changes (`SMOKE_OK`, `PERSISTENCE_OK`, `THEMES_OK`, `BACKUP_RESTORE_OK`, `LANGUAGE_OK`). Known issue for the next version: with the unshipped `themes/cyber` pack present, a third example pack renders two “安装” buttons and the smoke's exact `安装` locator becomes ambiguous; fix it together with the cyber pack.
+- `node scripts/packaged-check.cjs` against the 0.8.1 `release/win-unpacked` build: passed (`PACKAGED_RUNTIME_OK`, `PACKAGED_PERSISTENCE_OK`). Installers were built on 2026-09-25, signed with the self-signed dev certificate (`CN=Workstation Dev`), and archived under `release/0.8.1/`.
+- Installer hashes: EXE 122,501,224 bytes SHA-256 `007B0C129097BF2C67E9159B4D8E29F445C3009FCD51675F0656D5D5DF161D88`; MSI 137,056,256 bytes SHA-256 `FC1594BD61FA3E1E2DBD82A6ECA9D6019502EA5A2908C5D832B72F3FC0FE23C6`.
+- The installed 0.8.1 build has been the user's daily build since 2026-09-25; the user confirmed the lock on 2026-09-28.
+- Remaining manual checks: installed-app review of the week time axis, bulk archive from the Done tab, and same-day digest replacement against the real mailbox, plus the 0.8.0 items above and the provider/desktop checks below.
+
 ## Requires user-owned configuration or manual installed-app verification
 
 - Gmail IMAP login with the user's app password, inbox listing, translate, and the daily digest against the real mailbox.

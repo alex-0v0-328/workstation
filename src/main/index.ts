@@ -159,7 +159,7 @@ function registerIpc() {
   ipc('connection:save', value => providers.configure(value))
   ipc('connection:connect', () => providers.connect())
   ipc('connection:disconnect', () => providers.disconnect())
-  ipc('mail:list', input => providers.list(z.object({ query: z.string().max(1000), pageToken: z.string().max(2000).optional() }).parse(input)))
+  ipc('mail:list', input => providers.list(z.object({ query: z.string().max(1000), pageToken: z.string().max(2000).optional(), cachedOnly: z.boolean().optional() }).parse(input)))
   ipc('mail:read', input => providers.read(idSchema.parse(input)))
   ipc('mail:translate', input => providers.translate(idSchema.parse(input)))
   ipc('ai:test', () => providers.testAI())
