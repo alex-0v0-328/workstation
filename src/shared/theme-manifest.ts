@@ -13,6 +13,8 @@ export const layoutTokens = ['sidebarWidth', 'sidebarRadius', 'topbarHeight', 'c
 export type LayoutToken = typeof layoutTokens[number]
 const layoutValue = z.string().regex(/^-?\d+(\.\d+)?(px|rem|em|%)?$/, 'validation.themeLayout').max(20)
 const layoutSchema = z.record(z.string().max(40), layoutValue).optional()
+// Default UI font stack (CSS font-family). The Settings font picker overrides it; bundled faces ship as @font-face in css.
+const fontStack = z.string().trim().min(1).max(300).regex(/^[^;{}<>\\]*$/, 'validation.themeFont').optional()
 export type LayoutTokens = Partial<Record<LayoutToken, string>>
 
 const themeVariantSchema = z.object({
@@ -22,6 +24,7 @@ const themeVariantSchema = z.object({
   accent: hex,
   fluent: fluentOverrides.optional(),
   layout: layoutSchema,
+  font: fontStack,
   css: z.string().max(500_000)
 })
 
@@ -32,9 +35,13 @@ const themeManifestSchema = z.object({
   version: z.string().regex(/^\d+\.\d+\.\d+$/, 'validation.themeVersion'),
   author: z.string().max(100).default(''),
   description: z.string().max(500).default(''),
-  shell: z.enum(['sidebar', 'taskbar']),
+  // taskbar is the pre-0.8.3 name; it now renders the classic application shell.
+  shell: z.enum(['sidebar', 'classic', 'taskbar']),
   material: z.enum(['mica', 'acrylic', 'none']).default('none'),
   layout: layoutSchema,
+  font: fontStack,
+  // CSS shared by every variant (e.g. bundled @font-face rules), applied before the variant's own css.
+  css: z.string().max(500_000).optional(),
   variants: z.array(themeVariantSchema).min(1).max(20)
 })
 

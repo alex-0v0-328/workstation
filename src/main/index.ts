@@ -1,5 +1,5 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Notification, powerMonitor } from 'electron'
-import { join } from 'node:path'
+import { app, BrowserWindow, ipcMain, dialog, shell, Tray, Notification, powerMonitor, systemPreferences } from 'electron'
+import { join, basename } from 'node:path'
 import { readFile, writeFile, stat, mkdir } from 'node:fs/promises'
 import { DateTime } from 'luxon'
 import { z } from 'zod'
@@ -19,7 +19,7 @@ import type { Workspace } from '../shared/types'
 if (process.env.WORKSTATION_TEST_DATA) app.setPath('userData', process.env.WORKSTATION_TEST_DATA)
 app.setAppUserModelId('io.github.alex0v0328.workstation')
 let window: BrowserWindow | null = null, tray: Tray | null = null, store: Store, providers: Providers, themeService: ThemeService
-let quitting = false, syncing = false
+let quitting = false, syncing = false, savedPdf = ''
 const changed = () => window?.webContents.send('workspace:changed')
 const idSchema = z.string().min(1).max(200)
 const ipc = (channel: string, action: (value: any) => unknown) => ipcMain.handle(channel, async (event, value) => {
@@ -89,7 +89,7 @@ function registerIpc() {
     }
     const saved = store.save(next)
     if (previous.settings.startAtLogin !== saved.settings.startAtLogin && app.isPackaged) app.setLoginItemSettings({ openAtLogin: saved.settings.startAtLogin, args: ['--hidden'] })
-    if (previous.settings.theme !== saved.settings.theme || previous.settings.variant !== saved.settings.variant) themeService.applyMaterial()
+    if (previous.settings.theme !== saved.settings.theme || previous.settings.variant !== saved.settings.variant || previous.settings.appearance !== saved.settings.appearance) themeService.applyMaterial()
     if (previous.settings.language !== saved.settings.language) { setMainLanguage(saved.settings.language); rebuildTray() }
     changed(); return saved
   })
@@ -174,6 +174,16 @@ function registerIpc() {
   ipc('themes:install', () => themeService.install())
   ipc('themes:install-example', input => themeService.installExample(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
   ipc('themes:remove', input => themeService.remove(z.string().regex(/^[a-z0-9][a-z0-9-]{0,49}$/).parse(input)))
+  ipc('tools:save-pdf', async input => {
+    const value = z.object({ name: z.string().min(1).max(200), data: z.instanceof(Uint8Array).refine(d => d.byteLength > 0 && d.byteLength <= 1_000_000_000) }).parse(input)
+    const name = basename(value.name).replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').replace(/(\.pdf)?$/i, '.pdf')
+    const result = await dialog.showSaveDialog(window!, { defaultPath: join(app.getPath('documents'), name), filters: [{ name: mt('remote.pdfFilter'), extensions: ['pdf'] }] })
+    if (result.canceled || !result.filePath) return null
+    await writeFile(result.filePath, value.data)
+    savedPdf = result.filePath
+    return result.filePath
+  })
+  ipc('tools:reveal-pdf', () => { if (savedPdf) shell.showItemInFolder(savedPdf) })
 }
 function rebuildTray() {
   tray?.destroy()
@@ -193,6 +203,7 @@ else {
       registerIpc()
       window = createAppWindow({ store, themeService, isQuitting: () => quitting })
       rebuildTray()
+      systemPreferences.on('accent-color-changed', changed)
       if (!process.env.WORKSTATION_TEST_DATA) {
         const tick = createScheduler({ store, providers, syncCalendars, changed, notify })
         setInterval(() => { void tick() }, 60000).unref()

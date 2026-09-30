@@ -1,6 +1,6 @@
 import ICAL from 'ical.js'
 import { DateTime } from 'luxon'
-import type { CalendarEvent, IcsPreview } from './types'
+import type { Assessment, CalendarEvent, IcsPreview, Semester } from './types'
 import { MessageError } from './i18n'
 import { zhCN } from './i18n/zh-CN'
 
@@ -72,6 +72,29 @@ export function mergeCalendarMappings(previous: CalendarEvent[], incoming: Calen
 // Luxon's startOf('week') follows the runtime locale; teaching weeks anchor to Monday everywhere.
 export function startOfWeek(day: DateTime): DateTime {
   return day.minus({ days: day.weekday - 1 }).startOf('day')
+}
+
+// The semester as a step row: one key per teaching-calendar week (week 1 = the weekStart week, as in expandManual).
+// A key is armed by assessments due that week; level grows with their summed weight; bank quarters the row.
+export interface SemesterWeek { index: number; start: string; items: Assessment[]; open: number; weight: number; level: 0 | 1 | 2 | 3; bank: 0 | 1 | 2 | 3; now: boolean }
+export function semesterWeeks(semester: Semester, assessments: Assessment[], now: DateTime): SemesterWeek[] {
+  const zone = semester.timezone
+  const anchor = startOfWeek(DateTime.fromISO(semester.weekStart || semester.start, { zone }))
+  const last = startOfWeek(DateTime.fromISO(semester.end, { zone }))
+  if (!anchor.isValid || !last.isValid || last < anchor) return []
+  const count = Math.min(60, Math.round(last.diff(anchor, 'days').days / 7) + 1)
+  const current = startOfWeek(now.setZone(zone))
+  const weeks = Array.from({ length: count }, (_, i): SemesterWeek => ({ index: i + 1, start: anchor.plus({ weeks: i }).toISODate()!, items: [], open: 0, weight: 0, level: 0, bank: Math.min(3, Math.floor(i * 4 / count)) as SemesterWeek['bank'], now: anchor.plus({ weeks: i }).hasSame(current, 'day') }))
+  for (const item of assessments) {
+    const when = item.due || item.starts
+    if (item.archived || !when) continue
+    const slot = weeks[Math.round(startOfWeek(DateTime.fromISO(when, { zone })).diff(anchor, 'days').days / 7)]
+    if (!slot) continue
+    slot.items.push(item); slot.weight += item.weight ?? 0
+    if (item.status !== 'done') slot.open++
+  }
+  for (const week of weeks) week.level = !week.items.length ? 0 : week.weight >= 25 ? 3 : week.weight >= 10 ? 2 : 1
+  return weeks
 }
 
 export interface WeekSlot { event: CalendarEvent; top: number; height: number; lane: number; lanes: number }

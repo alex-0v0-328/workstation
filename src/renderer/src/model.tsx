@@ -7,6 +7,8 @@ export interface AppModel {
   state: Workspace; themeState: ThemeState | null; busy: boolean; page: string; feedback?: string
   messages: Messages; t: TFunction
   setPage(page: string): void
+  focusWeek: string
+  setFocusWeek(week: string): void
   mutate(change: (state: Workspace) => void): Promise<boolean>
   run<T>(action: () => Promise<T>, success?: string): Promise<T | undefined>
   editTask(item?: Task | Assessment, courseId?: string): void

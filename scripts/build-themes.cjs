@@ -45,11 +45,22 @@ async function buildThemes() {
     if (new Set(variantIds).size !== variantIds.length) throw new Error(`${srcPath}: 变体 ID 重复`)
     checkLayout(manifest.layout, srcPath, '主题级')
 
-    let sharedCss = ''
+    if (manifest.font !== undefined && (typeof manifest.font !== 'string' || manifest.font.length > 300 || /[;{}<>\\]/.test(manifest.font))) throw new Error(`${srcPath}: font 需为 CSS 字体族列表`)
+
+    // Bundled faces (woff2 under the theme folder) are inlined as @font-face data URIs ahead of the shared CSS.
+    let fontCss = ''
+    for (const face of manifest.fonts ?? []) {
+      if (!face || typeof face.family !== 'string' || !/^[\w .-]{1,60}$/.test(face.family) || typeof face.file !== 'string' || !face.file.endsWith('.woff2')) throw new Error(`${srcPath}: fonts 条目需含 family 与 .woff2 file`)
+      let data
+      try { data = await readFile(join(themeDir, face.file)) } catch { throw new Error(`${srcPath}: 字体文件不存在 ${face.file}`) }
+      fontCss += `@font-face{font-family:'${face.family}';src:url(data:font/woff2;base64,${data.toString('base64')}) format('woff2');font-weight:${face.weight ?? '400'};font-style:${face.style ?? 'normal'};font-display:swap}\n`
+    }
+
+    let sharedCss = fontCss
     if (manifest.sharedCss) {
       if (typeof manifest.sharedCss !== 'string') throw new Error(`${srcPath}: sharedCss 需为文件名字符串`)
       const sharedPath = join(themeDir, manifest.sharedCss)
-      try { sharedCss = await readFile(sharedPath, 'utf8') } catch { throw new Error(`${srcPath}: 共享 CSS 文件不存在 ${manifest.sharedCss}`) }
+      try { sharedCss += await readFile(sharedPath, 'utf8') } catch { throw new Error(`${srcPath}: 共享 CSS 文件不存在 ${manifest.sharedCss}`) }
     }
 
     const variants = []
@@ -60,13 +71,14 @@ async function buildThemes() {
       const cssPath = join(themeDir, variant.css)
       let css
       try { css = await readFile(cssPath, 'utf8') } catch { throw new Error(`${srcPath}: 变体 ${variant.id} CSS 文件不存在 ${variant.css}`) }
-      const combined = sharedCss ? `${sharedCss}\n${css}` : css
-      if (combined.length > MAX_CSS) throw new Error(`${srcPath}: 变体 ${variant.id} 内联 CSS 超过 500KB`)
-      variants.push({ ...variant, css: combined })
+      if (sharedCss.length + css.length > MAX_CSS) throw new Error(`${srcPath}: 变体 ${variant.id} 内联 CSS 超过 500KB`)
+      variants.push({ ...variant, css })
     }
 
-    const out = { ...manifest, variants }
+    // Shared CSS (fonts + sharedCss) ships once at theme level instead of being copied into every variant.
+    const out = { ...manifest, ...(sharedCss ? { css: sharedCss } : {}), variants }
     delete out.sharedCss
+    delete out.fonts
     const outPath = join(distDir, `${manifest.id}.wstheme.json`)
     await writeFile(outPath, JSON.stringify(out, null, 2))
     console.log(`built ${outPath}`)

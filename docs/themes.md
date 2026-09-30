@@ -1,6 +1,6 @@
 # Workstation 主题包创作指南
 
-Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它主题以 `.wstheme.json` 主题包形式安装。本文说明如何创作并打包主题。
+Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它主题以 `.wstheme.json` 主题包形式安装。本文说明如何创作并打包主题。0.8.3 起主题包只提供「皮肤」：共享结构（步进条、读数、面板、按键）由 `src/renderer/src/styles/base.css` 统一定义，主题包通过 CSS 变量与少量材质规则翻译它，变量表见 `docs/design.md`。
 
 ## 包格式
 
@@ -43,9 +43,11 @@ Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它�
 | `version` | `x.y.z` | 语义版本 |
 | `author` | ≤100 字符 | 作者，可选 |
 | `description` | ≤500 字符 | 简介，可选 |
-| `shell` | `sidebar` 或 `taskbar` | 布局壳，见 `src/renderer/src/themes/registry.tsx` |
+| `shell` | `sidebar` 或 `classic`（`taskbar` 为 0.8.3 前的旧名，按 `classic` 渲染） | 布局壳，见 `src/renderer/src/themes/registry.tsx`：`sidebar` 为悬浮侧栏；`classic` 为经典桌面程序（步进行工具条 + 属性页选项卡 + 状态栏） |
 | `material` | `mica`、`acrylic` 或 `none`，默认 `none` | 窗口材质，见 `docs/design.md` |
 | `layout` | 可选，白名单键 → CSS 长度/数字 | 排版布局 token，见 `docs/design.md` 的排版布局 Token 表 |
+| `font` | 可选，≤300 字符的 CSS 字体族列表，不含 `; { } < > ` | 主题的界面字体（用户不能自选，0.8.3 起） |
+| `css` | 可选，≤500KB | 所有变体共用的 CSS（例如内联字体的 `@font-face`），注入在变体 CSS 之前；构建脚本自动生成 |
 | `variants` | 1–20 项 | 每个变体即一个独立配色方案 |
 
 变体字段：
@@ -59,12 +61,13 @@ Workstation 0.5.0 起，内置主题仅保留 Windows 11 原生主题；其它�
 | `css` | 字符串，≤500KB | 主题 CSS，会被注入 `<style data-workstation-theme>` |
 | `fluent` | 可选，键名 `^color[A-Z]`、值 `#rrggbb` | 覆盖 Fluent UI 2 token |
 | `layout` | 可选，同主题级白名单 | 对单个变体微调排版，注入于主题级之后 |
+| `font` | 可选，同主题级 | 覆盖主题级默认字体 |
 
 注意：
 
-- `css` 字段在创作源中写文件名，构建后会被内联为字符串；最终每个变体的 CSS 不得超过 500KB。
+- `css` 字段在创作源中写文件名，构建后会被内联为字符串；主题级共享 CSS 与单个变体 CSS 之和不得超过 500KB。
 - `fluent` 只接受 `colorXxx` 形式的键，例如 `colorNeutralBackground1`、`colorBrandForeground1`。
-- 主题包不能包含 JavaScript、HTML、远程 URL 或字体文件外链，只能携带 CSS 字符串。
+- 主题包不能包含 JavaScript、HTML、远程 URL 或字体文件外链，只能携带 CSS 字符串。需要自带字体时用创作源的 `fonts` 字段，由构建脚本把 woff2 内联为 data URI（应用 CSP 允许 `font-src data:`）。
 
 ## 创作源格式
 
@@ -80,16 +83,21 @@ themes/catppuccin/
   mocha.css
 ```
 
-`theme.json` 中 `css` 写文件名，`sharedCss` 可选，用于在所有变体前拼接公共样式。
+`theme.json` 中 `css` 写文件名；`sharedCss` 可选，是所有变体共用的样式；`fonts` 可选，列出随包分发的 woff2 字体（路径相对主题目录，须附许可证，例如 `fonts/OFL-*.txt`）。构建时 `fonts` 生成的 `@font-face` 与 `sharedCss` 合并为包的主题级 `css`，只存一份，不再复制进每个变体。
 
 ```json
 {
   "format": 1,
   "id": "catppuccin",
   "name": "Catppuccin",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "shell": "sidebar",
   "material": "none",
+  "font": "'Maple Mono','Microsoft YaHei UI','Microsoft YaHei',monospace",
+  "fonts": [
+    { "family": "Maple Mono", "file": "fonts/maple-mono-400.woff2", "weight": "400" },
+    { "family": "Maple Mono", "file": "fonts/maple-mono-600.woff2", "weight": "600" }
+  ],
   "sharedCss": "shared.css",
   "variants": [
     { "id": "latte", "name": "Latte", "dark": false, "accent": "#8839ef", "css": "latte.css", "fluent": { ... } },
@@ -102,26 +110,22 @@ themes/catppuccin/
 
 ```css
 .theme-catppuccin {
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 3px 10px #00000014;
-  --brand-gradient: linear-gradient(145deg, var(--accent), var(--accent-soft));
+  --bg: var(--crust); --surface: var(--base); --key: var(--surface0);
+  --accent: var(--mauve); --chase: var(--lavender);
+  --step-a: var(--red); --step-b: var(--peach); --step-c: var(--yellow); --step-d: var(--rosewater);
+  --font-readout: 'Maple Mono', monospace; --label-case: uppercase;
 }
 
-.theme-catppuccin .surface {
-  border-width: 2px;
-}
+.theme-catppuccin .step-face { border-bottom-width: 2px; }
 ```
 
 变体 CSS 示例：
 
 ```css
 .theme-catppuccin.variant-latte {
-  --accent: #8839ef;
-  --bg: #eff1f5;
-  --surface: #ffffff;
-  --text: #4c4f69;
+  --mauve: #8839ef; --base: #eff1f5; --crust: #dce0e8; --ctp-text: #4c4f69;
   ...
+  --on-accent: #eff1f5;
   color-scheme: light;
 }
 ```
@@ -159,8 +163,9 @@ themes/dist/<id>.wstheme.json
 - `id`、`variant.id` 符合 slug 规则
 - `version` 符合 `x.y.z`
 - `variants` 数量 1–20 且无重复
-- `sharedCss` 与每个变体的 `css` 文件存在
-- 拼接后的 CSS 不超过 500KB
+- `sharedCss`、`fonts` 列出的 woff2 与每个变体的 `css` 文件存在
+- `font` 是合法字体族列表
+- 主题级共享 CSS 与单个变体 CSS 之和不超过 500KB
 
 主题打包已挂进 `npm.cmd run build` 链，正式构建前会自动执行。
 
@@ -173,7 +178,7 @@ themes/dist/<id>.wstheme.json
 - 用户数据目录：`%APPDATA%\Workstation\themes\`
 - 开发/测试隔离：`.local\themes\`
 
-示例主题（Catppuccin、复古 Windows、Cyber 赛博朋克）随安装包通过 `electron-builder` 的 `extraResources` 分发到 `resources/themes/`，设置页提供一键安装入口。
+示例主题（Catppuccin、复古 Windows、Cyber 赛博朋克）随安装包通过 `electron-builder` 的 `extraResources` 分发到 `resources/themes/`，设置页提供一键安装入口。已安装的示例包在应用启动后首次读取主题列表时，若随包版本号更高，会被新版覆盖（0.8.3 的三个示例包版本分别为 Catppuccin 1.0.0、复古 Windows 2.0.0、Cyber 2.0.0）；用户自己安装的其它主题包不受影响。
 
 0.6.0 起，设置页「导出用户档案」会把本目录下已安装的主题包一并写入档案 JSON；在另一台机器导入档案时主题包随数据一并恢复（逐包校验，无效包跳过并在确认框说明）。主题包的 `name`/`description`/`variant.name` 属于作者数据，不随应用界面语言翻译。
 

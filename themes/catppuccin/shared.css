@@ -1,37 +1,36 @@
-.theme-catppuccin {
-  --radius: 14px;
-  --radius-sm: 10px;
-  --shadow: 0 3px 10px #00000014;
-  --brand-gradient: linear-gradient(145deg, var(--accent), var(--accent-soft));
-}
-
-.theme-catppuccin .surface {
-  border-width: 2px;
-}
-
-.theme-catppuccin .sidebar {
-  border-right-width: 2px;
-}
-
-.theme-catppuccin .app-topbar {
-  border-bottom-width: 2px;
-}
-
-.theme-catppuccin .task-row:hover,
-.theme-catppuccin .mail-item:hover {
-  background: var(--tint);
-}
-
-.theme-catppuccin .empty-icon {
-  border-radius: 20px;
-}
-
-.theme-catppuccin .error-note {
-  background: color-mix(in srgb, var(--red) 14%, transparent);
-}
-
-.theme-catppuccin input,
-.theme-catppuccin select,
-.theme-catppuccin textarea {
-  border-width: 1.5px;
-}
+/* Catppuccin: official palette roles (catppuccin.com style guide) mapped onto the instrument grammar.
+   Crust is the matte panel ground, Base the panel faces, Surface 0-2 the keys, Mauve the accent,
+   Red/Peach/Yellow/Rosewater the four step banks. Maple Mono carries Latin text and every readout. */
+.theme-catppuccin{
+  --bg:var(--crust);--sidebar:var(--mantle);--surface:var(--base);--input:var(--mantle);--key:var(--surface0);--key-edge:var(--surface1);
+  --text:var(--ctp-text);--muted:var(--subtext0);--border:var(--surface0);--strong-border:var(--overlay0);--row-rule:color-mix(in srgb,var(--surface0) 70%,transparent);
+  --hover:color-mix(in srgb,var(--surface0) 60%,transparent);--pressed:var(--surface1);--selected:var(--surface0);--subtle-band:var(--mantle);
+  --accent:var(--mauve);--accent-ink:var(--mauve);--led:var(--green);--chase:var(--lavender);--led-lit:var(--crust);--led-off:var(--surface1);
+  --tint:color-mix(in srgb,var(--mauve) 14%,var(--base));--warning:var(--red);--success:var(--green);
+  --step-a:var(--red);--step-b:var(--peach);--step-c:var(--yellow);--step-d:var(--rosewater);
+  --display-bg:var(--mantle);--display-ink:var(--ctp-text);
+  --font:'Maple Mono','Microsoft YaHei UI','Microsoft YaHei',monospace;--font-readout:'Maple Mono',monospace;--readout-weight:600;--readout-tracking:-.02em;
+  --label-size:11px;--label-weight:600;--label-tracking:.08em;--label-case:uppercase;
+  --radius:12px;--radius-sm:8px;--radius-lg:14px;--key-radius:6px;--led-radius:50%;--sidebar-radius:14px;
+  --shadow-pop:0 10px 30px color-mix(in srgb,var(--crust) 60%,transparent);--shadow64:0 24px 64px color-mix(in srgb,var(--crust) 70%,transparent)}
+.theme-catppuccin ::selection{background:color-mix(in srgb,var(--overlay2) 30%,transparent)}
+.theme-catppuccin.root-theme{caret-color:var(--rosewater)}
+.theme-catppuccin h1{letter-spacing:-.03em}
+.theme-catppuccin .brand strong{color:var(--mauve)}
+.theme-catppuccin .step-face,.theme-catppuccin .calc-key,.theme-catppuccin .mode-key,.theme-catppuccin .flavor-dot{border-bottom-width:2px}
+.theme-catppuccin .step-key.level-3 .step-face{border-bottom-color:color-mix(in srgb,var(--step-color) 70%,var(--crust))}
+.theme-catppuccin .sidebar nav button[aria-current=page]::before,.theme-catppuccin .sidebar-bottom>button.nav-settings[aria-current=page]::before{background:var(--mauve);width:4px;border-radius:4px}
+.theme-catppuccin .tabs button[aria-selected=true]::after{background:var(--mauve);height:3px;border-radius:3px}
+.theme-catppuccin .readout-value{color:var(--ctp-text)}
+.theme-catppuccin .readout:nth-child(1) .readout-value{color:var(--mauve)}
+.theme-catppuccin .readout:nth-child(2) .readout-value{color:var(--peach)}
+.theme-catppuccin .readout.alert .readout-value{color:var(--red)}
+.theme-catppuccin .calc-key.op{background:color-mix(in srgb,var(--mauve) 18%,var(--surface0));border-color:color-mix(in srgb,var(--mauve) 40%,var(--surface1));color:var(--mauve)}
+.theme-catppuccin .calc-key.eq,.theme-catppuccin .calc-key.op.armed{background:var(--mauve);border-color:var(--mauve);color:var(--on-accent)}
+.theme-catppuccin .calc-value{color:var(--green)}
+.theme-catppuccin input[type=checkbox]:checked{background:var(--green);border-color:var(--green)}
+.theme-catppuccin input:focus,.theme-catppuccin select:focus,.theme-catppuccin textarea:focus{border-bottom-color:var(--lavender)}
+.theme-catppuccin .info-note{background:color-mix(in srgb,var(--blue) 14%,var(--base))}
+.theme-catppuccin .week-day-heading.today strong{background:var(--mauve);color:var(--on-accent)}
+.theme-catppuccin .week-now-line,.theme-catppuccin .week-now-line::before{background:var(--red)}
+.theme-catppuccin .merge-drop svg{color:var(--peach)}

@@ -1,10 +1,10 @@
 import type { ComponentType, ReactNode } from 'react'
-import { webLightTheme, webDarkTheme, type Theme } from '@fluentui/react-components'
+import type { Theme } from '@fluentui/react-components'
 import type { Settings, ThemeState } from '../../../shared/types'
 import { BUILTIN_THEME, pickVariant, type LayoutToken, type ThemeManifest, type ThemeVariant } from '../../../shared/theme-manifest'
-import { buildFluentTheme } from './fluent'
+import { buildFluentTheme, windowsAccent } from './fluent'
 import { SidebarShell } from './shells/sidebar'
-import { TaskbarShell } from './shells/taskbar'
+import { ClassicShell } from './shells/classic'
 
 export interface ResolvedTheme {
   id: string
@@ -19,15 +19,13 @@ export interface ResolvedTheme {
 
 const shells: Record<string, ComponentType<{ children: ReactNode }>> = {
   sidebar: SidebarShell,
-  taskbar: TaskbarShell
+  classic: ClassicShell,
+  // Pre-0.8.3 packs declared the retired taskbar desktop; they now get the classic application shell.
+  taskbar: ClassicShell
 }
 
-const fontStacks: Record<Settings['font'], string> = {
-  "": "'Segoe UI Variable Text','Segoe UI','Microsoft YaHei',sans-serif",
-  pingfang: "'PingFang SC','Segoe UI Variable Text','Segoe UI','Microsoft YaHei',sans-serif",
-  sfpro: "'SF Pro Text','SF Pro Display','Segoe UI Variable Text','Segoe UI','Microsoft YaHei',sans-serif",
-  caskaydia: "'CaskaydiaCove Nerd Font','Cascadia Mono','Segoe UI Variable Text','Segoe UI',monospace"
-}
+// Fonts belong to the theme (0.8.3): the manifest/variant font, or Segoe UI Variable for the built-in theme.
+const windowsFont = "'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','Microsoft YaHei',sans-serif"
 
 const layoutVarNames: Record<LayoutToken, string> = {
   sidebarWidth: '--sidebar-width',
@@ -50,22 +48,22 @@ function layoutCss(scope: string, layout: ThemeManifest['layout']): string {
   return decl ? `${scope}{${decl}}` : ''
 }
 
-export function resolveTheme(settings: Settings | undefined, external: ThemeManifest[], systemDark: boolean): ResolvedTheme {
+export function resolveTheme(settings: Settings | undefined, external: ThemeManifest[], systemDark: boolean, systemAccent = '#005fb8'): ResolvedTheme {
   const manifest = external.find(t => t.id === settings?.theme)
   const prefersDark = settings?.appearance === 'dark' || (settings?.appearance !== 'light' && systemDark)
-  const fontFamilyBase = fontStacks[settings?.font ?? '']
 
   if (!manifest || manifest.id === BUILTIN_THEME) {
     const dark = prefersDark
+    const accent = windowsAccent(systemAccent, dark)
     return {
       id: BUILTIN_THEME,
       label: 'Windows 11',
       dark,
       variant: null,
-      fluent: { ...(dark ? webDarkTheme : webLightTheme), fontFamilyBase },
+      fluent: buildFluentTheme(accent.fill, dark, { ...accent.fluent, fontFamilyBase: windowsFont }),
       classes: `root-theme theme-windows ${dark ? 'dark-mode' : 'light-mode'}`,
       Shell: SidebarShell,
-      css: ''
+      css: accent.css
     }
   }
 
@@ -75,9 +73,9 @@ export function resolveTheme(settings: Settings | undefined, external: ThemeMani
     label: manifest.name,
     dark: variant.dark,
     variant,
-    fluent: buildFluentTheme(variant.accent, variant.dark, { ...variant.fluent, fontFamilyBase }),
-    classes: `root-theme theme-${manifest.id} variant-${variant.id} ${variant.dark ? 'dark-mode' : 'light-mode'} shell-${manifest.shell}`,
+    fluent: buildFluentTheme(variant.accent, variant.dark, { ...variant.fluent, fontFamilyBase: variant.font || manifest.font || windowsFont }),
+    classes: `root-theme theme-${manifest.id} variant-${variant.id} ${variant.dark ? 'dark-mode' : 'light-mode'} shell-${manifest.shell === 'taskbar' ? 'classic' : manifest.shell}`,
     Shell: shells[manifest.shell] ?? SidebarShell,
-    css: layoutCss(`.theme-${manifest.id}`, manifest.layout) + layoutCss(`.theme-${manifest.id}.variant-${variant.id}`, variant.layout) + variant.css
+    css: layoutCss(`.theme-${manifest.id}`, manifest.layout) + layoutCss(`.theme-${manifest.id}.variant-${variant.id}`, variant.layout) + (manifest.css ?? '') + variant.css
   }
 }

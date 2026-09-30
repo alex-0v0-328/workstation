@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { DateTime } from 'luxon'
-import { parseCalendar, expandManual, layoutDayEvents, startOfWeek, weekTimeRange } from '../src/shared/calendar'
+import { parseCalendar, expandManual, layoutDayEvents, semesterWeeks, startOfWeek, weekTimeRange } from '../src/shared/calendar'
 import { visibleCalendarEvents } from '../src/shared/domain'
-import type { CalendarEvent, CalendarSource, Course, Semester } from '../src/shared/types'
+import type { Assessment, CalendarEvent, CalendarSource, Course, Semester } from '../src/shared/types'
 
 describe('calendar imports', () => {
   it('keeps recurrence IDs stable while respecting cancellations and single-instance moves', () => {
@@ -184,4 +184,23 @@ describe('anonymized Melbourne subscription fixture', () => {
     const args: [string, string, string, string, string] = [ics, 'feed', '2026-09-01', '2026-10-31', 'Australia/Melbourne']
     expect(parseCalendar(...args).events.map(e => e.id)).toEqual(parseCalendar(...args).events.map(e => e.id))
   })
+})
+
+describe('semester step row', () => {
+  const semester: Semester = { id: 's', name: 'S2', start: '2026-07-22', end: '2026-10-30', timezone: 'Australia/Melbourne', archived: false, weekStart: '2026-07-20', holidays: '' }
+  const item = (id: string, due: string, weight: number | null, status: Assessment['status'] = 'todo'): Assessment => ({ id, courseId: 'c', title: id, status, priority: 'normal', due, notes: '', reminders: true, archived: false, category: 'Assignment', opens: '', starts: '', ends: '', weight, score: null, maxScore: null, result: '', location: '', url: '' })
+  const now = DateTime.fromISO('2026-10-07T12:00', { zone: 'Australia/Melbourne' })
+  const weeks = semesterWeeks(semester, [item('a', '2026-07-24', 5), item('b', '2026-10-08T23:59:00+11:00', 30), item('c', '2026-10-05', null, 'done'), item('d', '', 40)], now)
+  it('anchors week 1 on weekStart and counts through the end week', () => {
+    expect(weeks).toHaveLength(15)
+    expect(weeks[0]).toMatchObject({ index: 1, start: '2026-07-20', level: 1, open: 1, bank: 0 })
+    expect(weeks.at(-1)).toMatchObject({ index: 15, start: '2026-10-26', bank: 3 })
+  })
+  it('lights the current week across the daylight-saving switch and grades weight into levels', () => {
+    const current = weeks.filter(w => w.now)
+    expect(current.map(w => w.index)).toEqual([12])
+    expect(current[0]).toMatchObject({ weight: 30, level: 3, open: 1 })
+    expect(current[0].items.map(i => i.id)).toEqual(['b', 'c'])
+  })
+  it('never arms a week for undated assessments', () => { expect(weeks.reduce((n, w) => n + w.items.length, 0)).toBe(3) })
 })

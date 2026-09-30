@@ -1,9 +1,10 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, nativeTheme, systemPreferences } from 'electron'
 import { join } from 'node:path'
-import { readdir, readFile, writeFile, copyFile, unlink, mkdir, stat } from 'node:fs/promises'
+import { readdir, readFile, mkdir, stat } from 'node:fs/promises'
+import { copyContent, removeFile, writeReplacing } from './files'
 import { readFileSync, readdirSync } from 'node:fs'
 import { release } from 'node:os'
-import { validateThemePackage, BUILTIN_THEME, type ThemeManifest } from '../shared/theme-manifest'
+import { validateThemePackage, BUILTIN_THEME, pickVariant, type ThemeManifest } from '../shared/theme-manifest'
 import { MessageError } from '../shared/i18n'
 import { mt } from './i18n'
 import type { ThemeState } from '../shared/types'
@@ -37,13 +38,24 @@ function listWsthemeFiles(dir: string): string[] {
   try { return readdirSync(dir).filter(n => n.endsWith('.wstheme.json')) } catch { return [] }
 }
 
+// Test mode pins material and accent for stable captures; WORKSTATION_TEST_MATERIAL=1 opts back into the live desktop values.
+const liveDesktop = () => !process.env.WORKSTATION_TEST_DATA || process.env.WORKSTATION_TEST_MATERIAL === '1'
+
+// Windows reports the personalization accent as RRGGBBAA.
+export function systemAccent(): string {
+  if (!liveDesktop() || process.platform !== 'win32') return '#005fb8'
+  try { const value = systemPreferences.getAccentColor(); return /^[0-9a-f]{6}/i.test(value) ? `#${value.slice(0, 6).toLowerCase()}` : '#005fb8' } catch { return '#005fb8' }
+}
+
+const newer = (a: string, b: string) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false }
+
 function readManifestSync(path: string): ThemeManifest | null {
   try { return validateThemePackage(JSON.parse(readFileSync(path, 'utf8'))) } catch { return null }
 }
 
 export function createThemeService(deps: { store: Store; getWindow: () => BrowserWindow | null; changed: () => void }): ThemeService {
   const themesDir = join(app.getPath('userData'), 'themes')
-  let ensured = false
+  let ensured = false, upgraded = false
 
   async function ensureDir(): Promise<void> {
     if (ensured) return
@@ -51,8 +63,20 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
     ensured = true
   }
 
+  // An installed copy of a bundled example pack is replaced once per session when the bundled version is newer.
+  async function upgradeExamples(): Promise<void> {
+    if (upgraded) return
+    upgraded = true
+    for (const name of listWsthemeFiles(resourcesDir())) {
+      const bundled = readManifestSync(join(resourcesDir(), name)), installed = readManifestSync(join(themesDir, name))
+      // A failed upgrade keeps the installed copy; it must never break the theme list.
+      if (bundled && installed && bundled.id === installed.id && newer(bundled.version, installed.version)) await copyContent(join(resourcesDir(), name), join(themesDir, name)).catch(() => undefined)
+    }
+  }
+
   async function readInstalled(): Promise<ThemeManifest[]> {
     await ensureDir()
+    await upgradeExamples()
     const manifests: ThemeManifest[] = []
     for (const name of listWsthemeFiles(themesDir)) {
       const manifest = readManifestSync(join(themesDir, name))
@@ -75,7 +99,7 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
   }
 
   function effectiveMaterial(): 'mica' | 'acrylic' | 'none' {
-    if (process.env.WORKSTATION_TEST_DATA) return 'none'
+    if (!liveDesktop()) return 'none'
     if (process.platform !== 'win32') return 'none'
     if (parseWinBuild(release()) < 22621) return 'none'
     const themeId = deps.store.load().settings.theme
@@ -92,12 +116,18 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
       return {
         themes,
         examples,
-        active: { id: settings.theme, variant: settings.variant, material: effectiveMaterial() }
+        active: { id: settings.theme, variant: settings.variant, material: effectiveMaterial() },
+        systemAccent: systemAccent()
       }
     },
 
+    // Mica and the title bar follow nativeTheme, so it must mirror the app's own light/dark choice, not the OS one.
     applyMaterial(): void {
       try {
+        const settings = deps.store.load().settings
+        const manifest = settings.theme === BUILTIN_THEME ? null : readManifestSync(join(themesDir, `${settings.theme}.wstheme.json`))
+        const variant = manifest && settings.variant ? pickVariant(manifest, settings.variant, false) : null
+        nativeTheme.themeSource = variant ? (variant.dark ? 'dark' : 'light') : settings.appearance
         const material = effectiveMaterial()
         deps.getWindow()?.setBackgroundMaterial(material)
       } catch { /* ignore platforms without material support */ }
@@ -121,7 +151,7 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
     async installManifest(input: unknown): Promise<void> {
       const manifest = validateThemePackage(input)
       await ensureDir()
-      await writeFile(join(themesDir, `${manifest.id}.wstheme.json`), JSON.stringify(manifest, null, 2))
+      await writeReplacing(join(themesDir, `${manifest.id}.wstheme.json`), JSON.stringify(manifest, null, 2))
     },
 
     async installed(): Promise<ThemeManifest[]> {
@@ -133,7 +163,7 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
       const source = join(resourcesDir(), `${id}.wstheme.json`)
       try { await stat(source) } catch { throw new MessageError('remote.exampleMissing') }
       await ensureDir()
-      await copyFile(source, join(themesDir, `${id}.wstheme.json`))
+      await copyContent(source, join(themesDir, `${id}.wstheme.json`))
       deps.changed()
       return this.list()
     },
@@ -142,7 +172,7 @@ export function createThemeService(deps: { store: Store; getWindow: () => Browse
       if (!slugRe.test(id)) throw new MessageError('remote.themeIdInvalid')
       if (id === BUILTIN_THEME) throw new MessageError('remote.builtinLocked')
       const filePath = join(themesDir, `${id}.wstheme.json`)
-      try { await unlink(filePath) } catch { throw new MessageError('remote.themeMissing') }
+      try { await removeFile(filePath) } catch { throw new MessageError('remote.themeMissing') }
       const current = deps.store.load()
       if (current.settings.theme === id) {
         current.settings.theme = BUILTIN_THEME

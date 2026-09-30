@@ -14,5 +14,7 @@ client_secret*.json
 *.log
 .local/
 themes/dist/
-AGENTS.md
+CLAUDE.md
 rules/
+.claude/
+.impeccable/

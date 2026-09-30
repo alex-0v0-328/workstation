@@ -7,8 +7,9 @@ export interface Assessment extends Task { courseId: string; category: string; o
 export interface Hurdle { id: string; courseId: string; text: string; scope: 'course' | 'assessment' | 'group'; assessmentIds: string[]; status: 'pending' | 'met' | 'unmet' }
 export interface CalendarEvent { id: string; sourceId: string; uid: string; courseId: string; title: string; start: string; end: string; allDay: boolean; location: string }
 export interface CalendarSource { id: string; name: string; url: string; semesterId: string; lastSync: string; error: string }
+// settings.font stays for stored-data compatibility; since 0.8.3 fonts follow the theme and the value is ignored.
 export interface Settings { theme: string; variant: string; appearance: 'system' | 'light' | 'dark'; language: import('./i18n').Language; font: '' | 'pingfang' | 'sfpro' | 'caskaydia'; timezone: string; startAtLogin: boolean; closeToTray: boolean; notifications: boolean; digestEnabled: boolean; digestTime: string; digestSince: string; model: string }
-export interface ThemeState { themes: import('./theme-manifest').ThemeManifest[]; examples: { id: string; name: string; description: string }[]; active: { id: string; variant: string; material: string } }
+export interface ThemeState { themes: import('./theme-manifest').ThemeManifest[]; examples: { id: string; name: string; description: string }[]; active: { id: string; variant: string; material: string }; systemAccent: string }
 export interface Workspace { version: 1; revision: number; semesters: Semester[]; courses: Course[]; assessments: Assessment[]; tasks: Task[]; hurdles: Hurdle[]; events: CalendarEvent[]; sources: CalendarSource[]; settings: Settings }
 export interface TodoItem extends Task { source: 'assessment' | 'task'; courseId?: string; courseName?: string; category?: string; color?: string; timezone?: string; opens?: string; score?: number | null; result?: '' | 'pass' | 'fail' }
 export interface Mail { id: string; threadId: string; subject: string; from: string; date: string; snippet: string; text: string; html: string; unread: boolean; attachments: { name: string; size: number }[] }
@@ -38,5 +39,7 @@ export interface Bridge {
   installTheme(): Promise<ThemeState | null>
   installExampleTheme(id: string): Promise<ThemeState>
   removeTheme(id: string): Promise<ThemeState>
+  savePdf(input: { name: string; data: Uint8Array }): Promise<string | null>
+  revealPdf(): Promise<void>
   onChanged(callback: () => void): () => void
 }

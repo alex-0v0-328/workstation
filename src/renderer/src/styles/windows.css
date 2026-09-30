@@ -1,16 +1,39 @@
-/* Windows 11 Fluent: Mica-style surfaces, soft shadows, Segoe UI Variable. */
+/* Windows 11 skin (built in): Fluent 2 fills and strokes, Segoe UI Variable, Mica. Accent roles come from the
+   Windows personalization color (themes/fluent.ts windowsAccent). The step row translates to Fluent tiles:
+   4px control radius, bottom-weighted control stroke, accent shades for the four banks. */
+.theme-windows{
+  --font:'Segoe UI Variable Text','Segoe UI','Microsoft YaHei UI','Microsoft YaHei',sans-serif;
+  --font-readout:'Segoe UI Variable Display','Segoe UI','Microsoft YaHei UI',sans-serif;
+  --readout-weight:600;--label-size:12px;--label-weight:600;--label-tracking:0;--label-case:none;
+  --radius:8px;--radius-sm:4px;--radius-lg:8px;--key-radius:4px;--led-radius:2px;--sidebar-radius:8px}
 .theme-windows.light-mode{
-  --accent:#0067c0;--bg:#f6f7f9;--sidebar:#eef1f5;--surface:#fff;--input:#fff;
-  --text:#242424;--muted:#717780;--border:#e5e7eb;--strong-border:#b9bec5;
-  --hover:#f2f5f9;--tint:#eaf3fc;--warning:#a34613;
+  --bg:#f3f3f3;--sidebar:#f9f9f9;--surface:#ffffff;--input:#ffffff;--key:#fbfbfb;--key-edge:#e5e5e5;
+  --text:#1b1b1b;--muted:#5d5d5d;--border:#e5e5e5;--strong-border:#8a8a8a;--row-rule:#efefef;
+  --hover:#0000000a;--pressed:#00000012;--subtle-band:#fafafa;--warning:#c42b1c;--success:#0f7b0f;--led-off:#d6d6d6;
+  --display-bg:#f9f9f9;--menu:#f9f9f9;--shadow-pop:0 8px 16px rgba(0,0,0,.14);--shadow64:0 32px 64px rgba(0,0,0,.19),0 2px 21px rgba(0,0,0,.15);
   color-scheme:light}
 .theme-windows.dark-mode{
-  --accent:#60b6ff;--bg:#1b1c1f;--sidebar:#202125;--surface:#25262a;--input:#303135;
-  --text:#f1f1f2;--muted:#a5a8af;--border:#38393e;--strong-border:#676970;
-  --hover:#303238;--tint:#263b50;--warning:#ffb17e;
+  --bg:#202020;--sidebar:#272727;--surface:#2b2b2b;--input:#2d2d2d;--key:#373737;--key-edge:#434343;
+  --text:#ffffff;--muted:#c5c5c5;--border:#383838;--strong-border:#9a9a9a;--row-rule:#333333;
+  --hover:#ffffff0f;--pressed:#ffffff0a;--subtle-band:#282828;--warning:#ff99a4;--success:#6ccb5f;--led-off:#4a4a4a;
+  --display-bg:#262626;--menu:#2c2c2c;--shadow-pop:0 8px 16px rgba(0,0,0,.26);--shadow64:0 32px 64px rgba(0,0,0,.37),0 2px 21px rgba(0,0,0,.37);
   color-scheme:dark}
-.theme-windows .sidebar{backdrop-filter:saturate(1.4)}
-.theme-windows .surface{border:1px solid var(--border);box-shadow:var(--shadow4)}
+
+/* Controls carry the Fluent elevation stroke: a slightly darker bottom edge. Unarmed step keys keep a 3:1 outline. */
+.theme-windows.light-mode .step-key.level-0 .step-face{border-color:#a8a8a8;border-bottom-color:#8a8a8a}
+.theme-windows.dark-mode .step-key.level-0 .step-face{border-color:#6a6a6a}
+.theme-windows .step-face,.theme-windows .calc-key,.theme-windows .mode-key,.theme-windows .flavor-dot{border-bottom-color:color-mix(in srgb,var(--key-edge) 70%,#000)}
+.theme-windows.dark-mode .step-face,.theme-windows.dark-mode .calc-key,.theme-windows.dark-mode .mode-key,.theme-windows.dark-mode .flavor-dot{border-top-color:#3f3f3f;border-bottom-color:var(--key-edge)}
+.theme-windows .step-key.level-3 .step-face,.theme-windows .calc-key.eq,.theme-windows .calc-key.op.armed{border-bottom-color:color-mix(in srgb,var(--step-color,var(--accent)) 70%,#000)}
+.theme-windows .sidebar{box-shadow:0 2px 4px rgba(0,0,0,.04)}
+.theme-windows .brand strong{font-family:'Segoe UI Variable Display','Segoe UI',sans-serif;font-size:16px}
+.theme-windows h1,.theme-windows .course-detail-heading h2{font-family:'Segoe UI Variable Display','Segoe UI','Microsoft YaHei UI',sans-serif}
+
+/* Mica: the window material shows through the root; panels become translucent layers over it. */
 .theme-windows.material-on.root-theme{background:transparent!important;background-color:transparent!important}
-.theme-windows.material-on .sidebar{background:color-mix(in srgb,var(--sidebar) 72%,transparent);backdrop-filter:blur(20px) saturate(125%)}
-.theme-windows.material-on .app-topbar{background:transparent}
+.theme-windows.material-on.light-mode{--sidebar:#ffffffb3;--surface:#ffffffb3;--key:#ffffffb3;--subtle-band:#ffffff4d;--display-bg:#ffffff80}
+.theme-windows.material-on.dark-mode{--sidebar:#ffffff0d;--surface:#ffffff0d;--key:#ffffff0f;--input:#ffffff0f;--subtle-band:#ffffff08;--display-bg:#0000001a}
+.theme-windows.material-on .transport{background:transparent;backdrop-filter:blur(30px) saturate(120%)}
+.theme-windows.material-on .native-panel{--surface:var(--dialog-solid)}
+.theme-windows.material-on.light-mode .native-panel,.theme-windows.material-on.light-mode .panel-heading{--dialog-solid:#f9f9f9}
+.theme-windows.material-on.dark-mode .native-panel,.theme-windows.material-on.dark-mode .panel-heading{--dialog-solid:#2b2b2b}

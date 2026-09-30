@@ -1,5 +1,6 @@
 // Organize release/ into per-version folders: installers and blockmaps move to release/<version>/.
-// win-unpacked/ and latest.yml stay at the root (packaged-check and update metadata consume them).
+// EXE/MSIX still match so leftovers from older multi-format builds sort the same way.
+// win-unpacked/ stays at the root (packaged-check consumes it).
 const { readdirSync, mkdirSync, renameSync, statSync } = require('node:fs')
 const { join } = require('node:path')
 

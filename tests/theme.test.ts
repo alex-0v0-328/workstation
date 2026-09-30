@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { validateThemePackage, pickVariant } from '../src/shared/theme-manifest'
+import { windowsAccent, contrast } from '../src/renderer/src/themes/fluent'
 
 const ROOT = join(__dirname, '..')
 const DIST = join(ROOT, 'themes', 'dist')
@@ -55,4 +56,24 @@ describe('theme packages', () => {
     expect(() => validateThemePackage({ ...base, layout: { sidebarWiddth: '300px' } })).toThrow('validation.themeLayoutKey')
     expect(() => validateThemePackage({ ...base, layout: { radius: 'solid 1px' } })).toThrow()
   })
+
+  it('accepts the classic shell and keeps taskbar as a legacy alias', () => {
+    const base = distManifests()[0].manifest
+    expect(validateThemePackage({ ...base, shell: 'classic' }).shell).toBe('classic')
+    expect(validateThemePackage({ ...base, shell: 'taskbar' }).shell).toBe('taskbar')
+    expect(() => validateThemePackage({ ...base, shell: 'desktop' })).toThrow()
+  })
+})
+
+describe('windows accent', () => {
+  for (const system of ['#0078d4', '#ffd700', '#107c10', '#e3008c']) {
+    it(`keeps ${system} readable in both modes with Windows-style ink`, () => {
+      const light = windowsAccent(system, false), dark = windowsAccent(system, true)
+      expect(contrast(light.fill, '#ffffff')).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(dark.fill, '#2b2b2b')).toBeGreaterThanOrEqual(4.5)
+      expect(light.fluent.colorNeutralForegroundOnBrand).toBe('#ffffff')
+      expect(dark.fluent.colorNeutralForegroundOnBrand).toBe('#000000')
+      expect(contrast(dark.fill, '#000000')).toBeGreaterThanOrEqual(4.5)
+    })
+  }
 })

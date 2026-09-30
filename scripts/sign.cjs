@@ -24,7 +24,7 @@ module.exports = async function sign(configuration) {
   if (configuration.site) args.push('/du', configuration.site)
   args.push(configuration.path)
 
-  // The NSIS uninstaller occasionally stays locked by the packager for a moment.
+  // A freshly written artifact occasionally stays locked by the packager for a moment.
   let lastError = ''
   for (let attempt = 0; attempt < 3; attempt++) {
     const result = spawnSync(signtool, args, { encoding: 'utf8' })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { DateTime, Info } from 'luxon'
 import { Button } from '@fluentui/react-components'
 import { Add20Regular, ArrowSync20Regular, ArrowUpload20Regular, ChevronLeft20Regular, ChevronRight20Regular } from '@fluentui/react-icons'
@@ -9,12 +9,14 @@ import { visibleCalendarEvents } from '../../shared/domain'
 import type { CalendarEvent, IcsPreview, Semester } from '../../shared/types'
 
 export function CalendarView() {
-  const { state, run, reload, mutate, messages, t } = useModel()
+  const { state, run, reload, mutate, messages, t, focusWeek, setFocusWeek } = useModel()
   const [semesterId, setSemesterId] = useState(''), [importing, setImporting] = useState(false), [manual, setManual] = useState(false), [selected, setSelected] = useState<CalendarEvent | null>(null)
   const semester = state.semesters.find(s => s.id === semesterId) || state.semesters.filter(s => !s.archived).at(-1)
   const zone = semester?.timezone || state.settings.timezone
   const currentWeek = () => startOfWeek(DateTime.now().setZone(zone))
-  const [week, setWeek] = useState(currentWeek)
+  const [week, setWeek] = useState(() => focusWeek ? startOfWeek(DateTime.fromISO(focusWeek, { zone })) : currentWeek())
+  // A step-row key sets focusWeek; consume it so pressing the same key again still jumps.
+  useEffect(() => { if (!focusWeek) return; setWeek(startOfWeek(DateTime.fromISO(focusWeek, { zone }))); setFocusWeek('') }, [focusWeek])
   const courses = state.courses.filter(c => c.semesterId === semester?.id)
   const sources = state.sources.filter(s => s.semesterId === semester?.id)
   const days = Array.from({ length: 7 }, (_, i) => startOfWeek(week).plus({ days: i }))
@@ -41,7 +43,7 @@ export function CalendarView() {
       </div>
       {hasAllDay && <div className="week-row week-allday">
         <div className="week-gutter"><span>{t('time.allDay')}</span></div>
-        {days.map(day => <div className="week-allday-cell" key={day.toISODate()}>{allDayOn(day).map(event => { const course = courses.find(c => c.id === event.courseId); return <button key={event.id} className="calendar-event allday" style={{ borderLeftColor: course?.color || '#8a8886' }} onClick={() => setSelected(event)}><strong>{event.title}</strong></button> })}</div>)}
+        {days.map(day => <div className="week-allday-cell" key={day.toISODate()}>{allDayOn(day).map(event => { const course = courses.find(c => c.id === event.courseId); return <button key={event.id} className="calendar-event allday" style={{ '--channel': course?.color || '#8a8886' } as CSSProperties} onClick={() => setSelected(event)}><strong>{event.title}</strong></button> })}</div>)}
       </div>}
       <div className="week-row week-body">
         <div className="week-gutter week-axis" style={{ height: bodyHeight }}>
@@ -51,7 +53,7 @@ export function CalendarView() {
           const date = day.toISODate()!
           const isToday = date === nowInZone.toISODate()
           const nowMinutes = nowInZone.hour * 60 + nowInZone.minute
-          return <div className="week-lane" key={date} style={{ height: bodyHeight }}>
+          return <div className={`week-lane ${isToday ? 'today' : ''}`} key={date} style={{ height: bodyHeight }}>
             {hourMarks.map(min => <i key={min} className="week-hour-line" style={{ top: ((min - open) / span) * bodyHeight }} />)}
             {hourMarks.slice(0, -1).map(min => <i key={`h${min}`} className="week-half-line" style={{ top: ((min + 30 - open) / span) * bodyHeight }} />)}
             {isToday && nowMinutes > open && nowMinutes < close && <i className="week-now-line" style={{ top: ((nowMinutes - open) / span) * bodyHeight }} />}
@@ -59,8 +61,10 @@ export function CalendarView() {
               const event = slot.event
               const course = courses.find(c => c.id === event.courseId)
               const height = Math.max(18, slot.height * bodyHeight)
-              const tier = height >= 58 ? '' : height >= 34 ? ' compact' : ' compact tiny'
-              return <button key={event.id} className={`calendar-event timed${tier}`} style={{ top: slot.top * bodyHeight, height, left: `calc(${(slot.lane / slot.lanes) * 100}% + 2px)`, width: `calc(${100 / slot.lanes}% - 4px)`, borderLeftColor: course?.color || '#8a8886' }} onClick={() => setSelected(event)}><span>{`${DateTime.fromISO(event.start).setZone(zone).toFormat('HH:mm')}–${DateTime.fromISO(event.end).setZone(zone).toFormat('HH:mm')}`}</span><strong>{event.title}</strong><small>{course?.code || course?.name || t('calendar.unlinked')}</small>{event.location && <small>{event.location}</small>}</button>
+              // Split lanes are narrow: drop code/location lines and clamp the title to the lines that fit, never clip mid-glyph.
+              const tier = height >= 58 && slot.lanes === 1 ? '' : height >= 34 ? ' compact' : ' compact tiny'
+              const lines = Math.max(1, Math.floor((height - 8 - (tier.includes('tiny') ? 0 : 15)) / 16))
+              return <button key={event.id} className={`calendar-event timed${tier}`} style={{ top: slot.top * bodyHeight, height, left: `calc(${(slot.lane / slot.lanes) * 100}% + 2px)`, width: `calc(${100 / slot.lanes}% - 4px)`, '--channel': course?.color || '#8a8886', '--lines': lines } as CSSProperties} onClick={() => setSelected(event)}><span>{slot.lanes > 1 ? DateTime.fromISO(event.start).setZone(zone).toFormat('HH:mm') : `${DateTime.fromISO(event.start).setZone(zone).toFormat('HH:mm')}–${DateTime.fromISO(event.end).setZone(zone).toFormat('HH:mm')}`}</span><strong>{event.title}</strong><small>{course?.code || course?.name || t('calendar.unlinked')}</small>{event.location && <small>{event.location}</small>}</button>
             })}
           </div>
         })}

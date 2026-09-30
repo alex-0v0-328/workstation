@@ -51,9 +51,9 @@
 
 ### 4. 响应式是壳 + 页两级问题
 
-- **原则**：`sidebar`/`taskbar` 两种 shell 与页面内容各自承担断点职责。
+- **原则**：`sidebar`/`classic` 两种 shell 与页面内容各自承担断点职责（0.8.3 起 `classic` 取代 `taskbar`）。
 - **本项目落点**：
-  - 壳层断点：`src/renderer/src/themes/shells/sidebar.tsx` 与 `taskbar.tsx` 负责侧栏宽度、悬浮/内嵌切换、底部栏折叠。
+  - 壳层断点：`src/renderer/src/themes/shells/sidebar.tsx` 与 `classic.tsx` 负责侧栏宽度、悬浮/内嵌切换，以及经典壳的选项卡行与状态栏。
   - 页面断点：遵循 `docs/design.md` 的 `1200px` 与 `1000px` 断点，页面内容从多列 → 单列，从水平架 → 垂直堆叠。
   - 极小宽度下，shell 应切为 overlay 或最小化模式，页面内边距与装饰性 chrome 同步缩减。
 
@@ -163,7 +163,9 @@
 
 ## taste-skill 使用边界
 
-项目用户级目录 `~/.agents/skills/` 已安装两个相关 taste-skill：
+> 0.8.3 起：设计技能改为项目级安装在 `.claude/skills/`（不进 Git）——`impeccable`（pbakaus/impeccable，Apache-2.0）为主流程，taste-skill 的 `design-taste-frontend` 与 `redesign-existing-projects`（Leonxlnx/taste-skill，MIT）提供审计纪律。任何前端改动（渲染层界面、样式、主题包）都必须经过它们，规则见 `rules/dev.md`「Frontend design toolchain」。下文为 0.6.0 时的历史记录。
+
+0.6.0 时用户级目录 `~/.agents/skills/` 安装过两个相关 taste-skill：
 
 | 技能 | 用途 | 本项目使用建议 |
 |---|---|---|

@@ -7,7 +7,9 @@ Windows 个人工作台，将 TODO、学习和 Gmail 阅读整合到一个本地
 - 学期、课程、自定义考核、日期精度、成绩及人工确认 hurdle。
 - 学业考核直接出现在 TODO 中，完成进度与学习区同步，无重复任务。
 - ICS 文件 / HTTPS 订阅、周课表、单次调课与取消、手动周次安排。
-- 内置 Windows 11 原生主题（Mica 毛玻璃、悬浮侧边栏、浅色/深色/跟随系统，材质不支持时自动降级实色）；其余 `.wstheme.json` 主题包可在“设置”安装，安装包附带 Catppuccin（四口味）、复古 Windows 95/98 与 Cyber 赛博朋克三个示例，主题切换不重置数据与草稿。
+- 「学期步进器」界面：顶部学期周步进条一眼看出本周位置与考核轻重，学习页为课程 × 学期周的音序器。
+- 内置 Windows 11 原生主题（Mica 毛玻璃、悬浮侧边栏、浅色/深色/跟随系统，强调色跟随系统设置，材质不支持时自动降级实色）；其余 `.wstheme.json` 主题包可在“设置”安装，安装包附带 Catppuccin（四口味）、复古 Windows（XP 经典样式程序外观）与 Cyber 赛博朋克三个示例，字体由主题决定，主题切换不重置数据与草稿。
+- 「工具」页：计算器与合并 PDF，集成开源项目 [andrewagain/calculator](https://github.com/andrewagain/calculator) 与 [pdf-merger-js](https://github.com/nbesli/pdf-merger-js)，全部在本机运行。
 - 界面语言：简体中文（默认）、繁體中文、English (US)，设置页即时切换，不影响数据与草稿。
 - Gmail 只读列表、搜索、正文和本地缓存；DeepSeek 单封翻译及每日增量总结。
 - SQLite 本地持久化、用户档案导出导入（含已安装主题包）、托盘、桌面提醒与可选开机启动。
@@ -29,7 +31,7 @@ npm.cmd run package
 node scripts/packaged-check.cjs
 ```
 
-`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。`package` 产出两种 Windows x64 安装格式到 `release/`：`Workstation Setup x.y.z.exe`（NSIS）与 `.msi`；打包永不向 GitHub 发布（`--publish never`）。本机存在 `.local/certs/` 自签名开发证书时两种格式都会签名（自签名不是商业代码签名，SmartScreen 仍可能提示），CI 等无证书环境自动不签名。`node scripts/organize-release.cjs` 把各版本安装包归档到 `release/<版本号>/`。MSIX 在 0.3.0 评估后搁置：自签名 MSIX 需先手动信任证书才能安装，没有实际收益。
+`smoke` 使用独立 `.local/` 测试数据目录运行真实 Electron UI，并验证重启后的持久化，不读写个人正式数据。`package` 只产出一种 Windows x64 安装格式到 `release/`：`Workstation x.y.z.msi`；打包永不向 GitHub 发布（`--publish never`）。本机存在 `.local/certs/` 自签名开发证书时应用程序与 MSI 都会签名（自签名不是商业代码签名，SmartScreen 仍可能提示），CI 等无证书环境自动不签名。0.8.2 及更早版本还附带 NSIS 安装包（`Workstation Setup x.y.z.exe`），但 NSIS 与 MSI 互不识别，混用会出现两条安装记录。因此从旧 EXE 安装升级前，需先在“设置 → 应用”卸载旧版。`node scripts/organize-release.cjs` 把各版本安装包归档到 `release/<版本号>/`。MSIX 在 0.3.0 评估后搁置：自签名 MSIX 需先手动信任证书才能安装，没有实际收益。
 
 ## 数据安全与卸载
 

@@ -12,13 +12,14 @@ import { StudyView } from './StudyView'
 import { CalendarView } from './CalendarView'
 import { MailView } from './MailView'
 import { SettingsView } from './SettingsView'
+import { ToolsView } from './ToolsView'
 import './styles/base.css'
 import './styles/windows.css'
 
-const pages: Record<string, React.ComponentType> = { todo: TodoView, study: StudyView, calendar: CalendarView, life: MailView, settings: SettingsView }
+const pages: Record<string, React.ComponentType> = { todo: TodoView, study: StudyView, calendar: CalendarView, life: MailView, tools: ToolsView, settings: SettingsView }
 
 function App() {
-  const [state, setState] = useState<Workspace | null>(null), [themeState, setThemeState] = useState<ThemeState | null>(null), [page, setPage] = useState('todo'), [pending, setPending] = useState(0), [message, setMessage] = useState<{ text: string; error: boolean } | null>(null), [systemDark, setSystemDark] = useState(matchMedia('(prefers-color-scheme: dark)').matches), [editor, setEditor] = useState<{ item?: Task | Assessment; courseId?: string } | null>(null)
+  const [state, setState] = useState<Workspace | null>(null), [themeState, setThemeState] = useState<ThemeState | null>(null), [page, setPage] = useState('todo'), [focusWeek, setFocusWeek] = useState(''), [pending, setPending] = useState(0), [message, setMessage] = useState<{ text: string; error: boolean } | null>(null), [systemDark, setSystemDark] = useState(matchMedia('(prefers-color-scheme: dark)').matches), [editor, setEditor] = useState<{ item?: Task | Assessment; courseId?: string } | null>(null)
   const messages = useMemo(() => resolveMessages(state?.settings.language), [state?.settings.language])
   const t = useMemo(() => createT(messages), [messages])
   useEffect(() => { document.documentElement.lang = messages.meta.locale }, [messages])
@@ -38,7 +39,7 @@ function App() {
   useEffect(() => { const media = matchMedia('(prefers-color-scheme: dark)'); const listener = () => setSystemDark(media.matches); media.addEventListener('change', listener); return () => media.removeEventListener('change', listener) }, [])
   useEffect(() => {
     let style = document.querySelector<HTMLStyleElement>('style[data-workstation-theme]')
-    const resolved = resolveTheme(state?.settings, themeState?.themes ?? [], systemDark)
+    const resolved = resolveTheme(state?.settings, themeState?.themes ?? [], systemDark, themeState?.systemAccent)
     if (resolved.css) {
       if (!style) { style = document.createElement('style'); style.dataset.workstationTheme = ''; document.head.appendChild(style) }
       style.textContent = resolved.css
@@ -50,11 +51,11 @@ function App() {
     const result = await run(async () => { const current = await window.workstation.load(); change(current); setState(await window.workstation.save(current)); return true })
     return result === true
   }
-  const resolved = resolveTheme(state?.settings, themeState?.themes ?? [], systemDark)
+  const resolved = resolveTheme(state?.settings, themeState?.themes ?? [], systemDark, themeState?.systemAccent)
   const material = themeState?.active.material && themeState.active.material !== 'none'
   const className = `${resolved.classes} ${material ? 'material-on' : 'material-off'}`
   const Page = pages[page] || pages.todo
   const Shell = resolved.Shell
-  return <FluentProvider theme={resolved.fluent} className={className}>{state ? <Model.Provider value={{ state, themeState, busy: pending > 0, feedback: message?.error ? message.text : '', page, setPage, messages, t, mutate, run, editTask: (item, courseId) => setEditor({ item, courseId }), reload, setThemeState }}><Shell><Page /></Shell>{editor && <TaskEditor key={editor.item?.id || editor.courseId || 'new'} {...editor} close={() => setEditor(null)} />}</Model.Provider> : <div className="startup"><Spinner label={t('app.startup')} /></div>}{pending > 0 && state && <div className="busy-indicator" role="status"><Spinner size="tiny" />{t('app.working')}</div>}{message && <div className={`app-message ${message.error ? 'error' : ''}`} role={message.error ? 'alert' : 'status'}><span>{message.text}</span><Button size="small" appearance="subtle" aria-label={t('app.dismissToast')} icon={<Dismiss16Regular />} onClick={() => setMessage(null)} /></div>}</FluentProvider>
+  return <FluentProvider theme={resolved.fluent} className={className}>{state ? <Model.Provider value={{ state, themeState, busy: pending > 0, feedback: message?.error ? message.text : '', page, setPage, focusWeek, setFocusWeek, messages, t, mutate, run, editTask: (item, courseId) => setEditor({ item, courseId }), reload, setThemeState }}><Shell><Page /></Shell>{editor && <TaskEditor key={editor.item?.id || editor.courseId || 'new'} {...editor} close={() => setEditor(null)} />}</Model.Provider> : <div className="startup"><Spinner label={t('app.startup')} /></div>}{pending > 0 && state && <div className="busy-indicator" role="status"><Spinner size="tiny" />{t('app.working')}</div>}{message && <div className={`app-message ${message.error ? 'error' : ''}`} role={message.error ? 'alert' : 'status'}><span>{message.text}</span><Button size="small" appearance="subtle" aria-label={t('app.dismissToast')} icon={<Dismiss16Regular />} onClick={() => setMessage(null)} /></div>}</FluentProvider>
 }
 createRoot(document.getElementById('root')!).render(<App />)

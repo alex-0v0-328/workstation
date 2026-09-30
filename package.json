@@ -1,6 +1,6 @@
 {
   "name": "workstation",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "private": true,
   "description": "A local-first Windows workspace for tasks, study, and mail.",
   "author": "Alex",
@@ -39,7 +39,6 @@
     ],
     "win": {
       "target": [
-        "nsis",
         "msi"
       ],
       "signAndEditExecutable": true,
@@ -50,11 +49,6 @@
         ],
         "sign": "scripts/sign.cjs"
       }
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false
     },
     "msi": {
       "upgradeCode": "7f3a9c2e-4b6d-4e1a-9c5f-2d8b0a1e6f3d"
@@ -73,16 +67,19 @@
     "@fluentui/react-icons": "^2.0.341",
     "@playwright/test": "^1.63.0",
     "@types/better-sqlite3": "^9.6.0",
+    "@types/big.js": "^7.0.0",
     "@types/luxon": "^3.7.5",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^26.5.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "big.js": "^7.0.1",
     "dompurify": "^3.4.15",
     "electron": "^44.3.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "pdf-merger-js": "^5.1.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "typescript": "^7.0.2",
